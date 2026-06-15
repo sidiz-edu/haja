@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>하자보수비 분석 — 26년 5월 시디즈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root {
+  --gray-0:#FFFFFF;--gray-50:#F7F7F8;--gray-100:#F0F0F1;--gray-200:#D9DCDD;
+  --gray-300:#C5C8CA;--gray-400:#ABAEB1;--gray-500:#9D9FA2;--gray-600:#76787B;
+  --gray-700:#56585A;--gray-800:#3A3B3D;--gray-900:#1F2021;--gray-950:#121314;
+  --blue:#003EFF;--blue-50:#EBF0FF;--blue-100:#D6E1FF;
+  --blue-600:#0031CC;--blue-700:#00269E;
+  --sub-slate:#8A93A1;
+  --exp-sky-600:#3D6FE0;--exp-azure-600:#2E86C6;--exp-teal-600:#2E9B8A;
+  --exp-mint-600:#4FA567;--exp-violet-600:#6E5FC6;
+  --exp-rose-600:#C65878;--exp-amber-600:#C68A3D;
+  --bg-base:var(--gray-50);--bg-subtle:var(--gray-100);
+  --surface:var(--gray-0);
+  --text-primary:var(--gray-900);--text-secondary:var(--gray-600);
+  --text-tertiary:var(--gray-500);
+  --border-subtle:var(--gray-200);--border-default:var(--gray-300);
+  --accent:var(--blue);--accent-soft:#EBF0FF;
+  --shadow-sm:0 1px 3px rgba(31,32,33,0.08),0 1px 2px rgba(31,32,33,0.05);
+  --shadow-md:0 4px 12px rgba(31,32,33,0.08),0 2px 4px rgba(31,32,33,0.05);
+  --shadow-focus:0 0 0 3px #EBF0FF;
+  --border-hairline:1px solid var(--border-subtle);
+  --border-card:1px solid var(--border-subtle);
+  --radius-sm:3px;--radius-md:8px;--radius-lg:14px;--radius-pill:999px;
+  --font-display:"Outfit","Pretendard Variable",-apple-system,system-ui,sans-serif;
+  --font-body:"Outfit","Pretendard Variable",-apple-system,system-ui,sans-serif;
+  --font-kr:"Pretendard Variable","Outfit",-apple-system,system-ui,sans-serif;
+  --fw-thin:200;--fw-light:300;--fw-book:500;
+  --fs-h4:1.25rem;--fs-body:1rem;--fs-sm:0.875rem;--fs-xs:0.75rem;
+  --lh-normal:1.5;--lh-relaxed:1.65;
+  --tracking-headline:0.01em;--tracking-body:-0.01em;
+  --tracking-kr:-0.025em;--tracking-wide:0.12em;
+  --space-1:0.25rem;--space-2:0.5rem;--space-3:0.75rem;
+  --space-4:1rem;--space-5:1.5rem;--space-6:2rem;
+  --dur-fast:120ms;--dur-base:200ms;
+  --ease-standard:cubic-bezier(0.2,0,0,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font-body);
+  background:var(--bg-base);
+  color:var(--text-primary);
+  font-size:var(--fs-sm);
+  font-weight:var(--fw-light);
+  letter-spacing:var(--tracking-kr);
+}
+a{color:inherit;text-decoration:none}
+
+/* HEADER */
+.header{
+  background:var(--surface);
+  border-bottom:var(--border-hairline);
+  padding:var(--space-5) var(--space-6) var(--space-4);
+}
+.header-inner{display:flex;align-items:flex-start;gap:var(--space-4);margin-bottom:var(--space-4)}
+.sidiz-mark{display:flex;align-items:center;gap:10px;flex-shrink:0;padding-top:2px}
+.sidiz-mark-text{
+  font-family:var(--font-display);
+  font-weight:var(--fw-book);
+  font-size:0.6875rem;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--text-primary);
+}
+.mark-div{width:1px;height:18px;background:var(--border-default)}
+.header-titles{}
+.header h1{
+  font-size:var(--fs-h4);
+  font-weight:var(--fw-book);
+  letter-spacing:var(--tracking-kr);
+  color:var(--text-primary);
+  font-family:var(--font-kr);
+}
+.header .sub{
+  font-size:var(--fs-xs);
+  color:var(--text-tertiary);
+  margin-top:var(--space-1);
+  letter-spacing:var(--tracking-wide);
+  text-transform:uppercase;
+  font-family:var(--font-display);
+  font-weight:var(--fw-light);
+}
+.kpis{display:flex;gap:var(--space-3);flex-wrap:wrap}
+.kpi{
+  background:var(--surface);
+  border:var(--border-card);
+  border-radius:var(--radius-lg);
+  padding:var(--space-4) var(--space-5);
+  min-width:136px;
+  position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:2px;
+  background:var(--gray-200);
+}
+.kpi.kpi-accent::before{background:var(--accent)}
+.kpi .v{
+  font-size:1.75rem;font-weight:var(--fw-light);
+  color:var(--text-primary);
+  letter-spacing:var(--tracking-body);
+  font-family:var(--font-display);line-height:1.2;
+}
+.kpi .l{
+  font-size:var(--fs-xs);color:var(--text-tertiary);
+  margin-top:var(--space-1);text-transform:uppercase;
+  letter-spacing:var(--tracking-wide);font-weight:var(--fw-book);
+  font-family:var(--font-kr);
+}
+
+/* LAYOUT */
+.main{display:flex;gap:0;height:calc(100vh - 156px)}
+.sidebar{
+  width:288px;min-width:244px;
+  background:var(--surface);
+  border-right:var(--border-hairline);
+  overflow-y:auto;
+  padding:var(--space-4) var(--space-3);
+  flex-shrink:0;
+}
+.content{flex:1;overflow-y:auto;padding:var(--space-5) var(--space-6)}
+
+/* SIDEBAR */
+.sidebar h2{
+  font-size:var(--fs-xs);text-transform:uppercase;
+  letter-spacing:var(--tracking-wide);color:var(--text-tertiary);
+  margin:0 var(--space-2) var(--space-3);
+  padding-bottom:var(--space-2);
+  border-bottom:var(--border-hairline);
+  font-weight:var(--fw-book);font-family:var(--font-display);
+}
+.type-card{
+  display:flex;align-items:flex-start;gap:var(--space-3);
+  padding:var(--space-2) var(--space-2);
+  border-radius:var(--radius-md);cursor:pointer;
+  margin-bottom:2px;
+  transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);
+  border:1px solid transparent;
+}
+.type-card:hover{background:var(--bg-subtle)}
+.type-card.active{background:var(--accent-soft);border-color:rgba(0,62,255,0.2)}
+.type-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.type-info{flex:1;min-width:0}
+.type-name{
+  font-size:var(--fs-xs);font-weight:var(--fw-book);
+  color:var(--text-primary);line-height:1.5;
+  letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
+}
+.type-bar-wrap{
+  background:var(--gray-200);border-radius:var(--radius-sm);
+  height:3px;margin:5px 0 4px;
+}
+.type-bar{height:3px;border-radius:var(--radius-sm)}
+.type-meta{display:flex;align-items:center;gap:var(--space-2)}
+.badge{
+  color:#fff;font-size:10px;font-weight:var(--fw-book);
+  padding:1px 7px;border-radius:var(--radius-pill);
+  letter-spacing:0.02em;font-family:var(--font-display);
+}
+.amt{font-size:11px;color:var(--text-secondary);font-family:var(--font-kr)}
+.pct{font-size:11px;color:var(--text-tertiary);font-family:var(--font-display)}
+.reset-btn{
+  width:100%;padding:var(--space-2) var(--space-3);
+  border:var(--border-card);background:transparent;
+  border-radius:var(--radius-pill);cursor:pointer;
+  font-size:var(--fs-xs);color:var(--text-secondary);
+  margin-bottom:var(--space-4);
+  transition:all var(--dur-fast) var(--ease-standard);
+  font-family:var(--font-display);
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;
+  font-weight:var(--fw-book);
+}
+.reset-btn:hover{background:var(--bg-subtle);color:var(--text-primary);border-color:var(--border-default)}
+
+/* PROD CHART */
+.section-title{
+  font-size:var(--fs-xs);text-transform:uppercase;
+  letter-spacing:var(--tracking-wide);color:var(--text-tertiary);
+  margin:var(--space-5) var(--space-2) var(--space-3);
+  padding-bottom:var(--space-2);
+  border-bottom:var(--border-hairline);
+  font-weight:var(--fw-book);font-family:var(--font-display);
+}
+.prod-row{
+  display:flex;align-items:center;gap:var(--space-2);
+  margin-bottom:2px;padding:4px var(--space-2);
+  border-radius:var(--radius-md);cursor:pointer;
+  border:1px solid transparent;
+  transition:background var(--dur-fast) var(--ease-standard);
+}
+.prod-row:hover{background:var(--bg-subtle)}
+.prod-row.active{background:var(--accent-soft);border-color:rgba(0,62,255,0.2)}
+.prod-row.active .prod-name{color:var(--accent);font-weight:var(--fw-book)}
+.prod-row.active .prod-bar{background:var(--accent)}
+.prod-name{
+  font-size:11px;width:62px;text-align:right;
+  color:var(--text-secondary);flex-shrink:0;
+  font-weight:var(--fw-light);
+  letter-spacing:var(--tracking-wide);
+  font-family:var(--font-display);text-transform:uppercase;
+}
+.prod-bar-wrap{flex:1;background:var(--gray-200);border-radius:var(--radius-sm);height:6px}
+.prod-bar{
+  height:6px;border-radius:var(--radius-sm);background:var(--gray-400);
+  transition:width var(--dur-base) var(--ease-standard);
+}
+.prod-cnt{font-size:11px;color:var(--text-tertiary);width:28px;text-align:right;font-family:var(--font-kr)}
+
+/* CONTENT */
+.content-header{
+  display:flex;align-items:center;gap:var(--space-3);
+  margin-bottom:var(--space-4);flex-wrap:wrap;
+}
+.content-header h2{
+  font-size:var(--fs-h4);font-weight:var(--fw-book);
+  color:var(--text-primary);letter-spacing:var(--tracking-kr);
+  font-family:var(--font-kr);
+}
+.filter-badge{
+  font-size:11px;padding:3px 10px;
+  border-radius:var(--radius-pill);font-weight:var(--fw-book);
+}
+.count-badge{
+  font-size:var(--fs-xs);color:var(--text-tertiary);
+  margin-left:auto;font-weight:var(--fw-book);
+  letter-spacing:var(--tracking-wide);font-family:var(--font-display);
+}
+
+/* SEARCH */
+.search-wrap{margin-bottom:var(--space-4)}
+.search-wrap input{
+  width:100%;padding:var(--space-3) var(--space-4);
+  border:var(--border-card);border-radius:var(--radius-md);
+  font-size:var(--fs-sm);font-family:var(--font-kr);
+  outline:none;
+  transition:border var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard);
+  background:var(--surface);color:var(--text-primary);
+  letter-spacing:var(--tracking-kr);
+}
+.search-wrap input:focus{border-color:var(--accent);box-shadow:var(--shadow-focus)}
+.search-wrap input::placeholder{color:var(--text-tertiary)}
+
+/* ROW CARDS */
+.row-card{
+  background:var(--surface);border-radius:var(--radius-lg);
+  border:var(--border-card);
+  padding:var(--space-4) var(--space-5);
+  margin-bottom:var(--space-3);
+  display:flex;gap:var(--space-5);align-items:flex-start;
+  transition:box-shadow var(--dur-base) var(--ease-standard),border-color var(--dur-base) var(--ease-standard);
+}
+.row-card:hover{box-shadow:var(--shadow-md);border-color:var(--border-default)}
+.row-left{min-width:128px;flex-shrink:0}
+.row-num{
+  font-size:10px;color:var(--text-tertiary);
+  font-family:var(--font-display);
+  margin-top:var(--space-2);letter-spacing:0.04em;
+}
+.row-customer{
+  font-size:var(--fs-sm);font-weight:var(--fw-book);
+  color:var(--text-primary);margin-top:4px;
+  letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
+}
+.row-prod{
+  font-size:var(--fs-xs);color:var(--text-secondary);
+  margin-top:4px;font-weight:var(--fw-book);
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;
+  font-family:var(--font-display);
+}
+.row-part{
+  font-size:11px;color:var(--text-tertiary);
+  margin-top:4px;letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
+}
+.tag{
+  display:inline-block;color:#fff;
+  font-size:10px;font-weight:var(--fw-book);
+  padding:3px 9px;border-radius:var(--radius-pill);
+  letter-spacing:0.02em;font-family:var(--font-kr);
+}
+.row-center{flex:1;min-width:0}
+.row-detail{
+  font-size:var(--fs-xs);color:var(--text-primary);
+  line-height:var(--lh-relaxed);margin-bottom:var(--space-2);
+  letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
+}
+.row-detail strong{font-weight:var(--fw-book);color:var(--text-secondary)}
+.row-req{
+  font-size:11px;color:var(--text-secondary);
+  line-height:var(--lh-relaxed);
+  background:var(--bg-subtle);
+  padding:var(--space-2) var(--space-3);
+  border-radius:var(--radius-md);
+  border-left:2px solid var(--gray-300);
+  letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
+}
+.row-req strong{font-weight:var(--fw-book);color:var(--text-secondary)}
+.row-right{min-width:108px;text-align:right;flex-shrink:0}
+.row-amount{
+  font-size:1.25rem;font-weight:var(--fw-light);
+  color:var(--text-primary);
+  letter-spacing:var(--tracking-body);font-family:var(--font-display);
+}
+.row-amount span{
+  font-size:var(--fs-xs);font-weight:var(--fw-light);
+  color:var(--text-tertiary);font-family:var(--font-kr);
+}
+.row-count{
+  font-size:11px;color:var(--text-tertiary);
+  margin-top:4px;letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
+}
+.hidden{display:none}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:var(--radius-pill)}
+::-webkit-scrollbar-track{background:transparent}
+
+@media(max-width:700px){
+  .main{flex-direction:column;height:auto}
+  .sidebar{width:100%;height:auto;border-right:none;border-bottom:var(--border-hairline)}
+  .row-card{flex-direction:column}
+  .row-right{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="sidiz-mark">
+      <span class="sidiz-mark-text">SIDIZ</span>
+    </div>
+    <div class="mark-div"></div>
+    <div class="header-titles">
+      <h1>하자보수비 분석 대시보드</h1>
+      <div class="sub">26년 5월 &middot; 옴니채널운영팀 &middot; 시디즈 &middot; 원본 123행 → 접수번호 기준 묶음</div>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi kpi-accent"><div class="v">71</div><div class="l">총 접수건</div></div>
+    <div class="kpi"><div class="v">5,426,840</div><div class="l">총 금액 (원)</div></div>
+    <div class="kpi"><div class="v">11</div><div class="l">불만 유형</div></div>
+    <div class="kpi"><div class="v">76,434</div><div class="l">건당 평균 (원)</div></div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h2>불만 유형 필터</h2>
+    <button class="reset-btn" onclick="resetAll()">전체 보기</button>
+    
+      <div class="type-card" onclick="filterType('A. 냄새 / 유해성')" style="--accent:#6E5FC6" data-type="A. 냄새 / 유해성">
+        <div class="type-dot" style="background:#6E5FC6"></div>
+        <div class="type-info">
+          <div class="type-name">A. 냄새 / 유해성</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:7%;background:#6E5FC6"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#6E5FC6">1건</span> <span class="amt">514,000원</span> <span class="pct">9.5%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('B. 파손 / 찍힘')" style="--accent:#C65878" data-type="B. 파손 / 찍힘">
+        <div class="type-dot" style="background:#C65878"></div>
+        <div class="type-info">
+          <div class="type-name">B. 파손 / 찍힘</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:21%;background:#C65878"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#C65878">3건</span> <span class="amt">355,400원</span> <span class="pct">6.5%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('C. 조립·시공 불량')" style="--accent:#C68A3D" data-type="C. 조립·시공 불량">
+        <div class="type-dot" style="background:#C68A3D"></div>
+        <div class="type-info">
+          <div class="type-name">C. 조립·시공 불량</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:71%;background:#C68A3D"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#C68A3D">10건</span> <span class="amt">232,440원</span> <span class="pct">4.3%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('D. 외관 / 오염 / 표면')" style="--accent:#2E9B8A" data-type="D. 외관 / 오염 / 표면">
+        <div class="type-dot" style="background:#2E9B8A"></div>
+        <div class="type-info">
+          <div class="type-name">D. 외관 / 오염 / 표면</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:43%;background:#2E9B8A"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#2E9B8A">6건</span> <span class="amt">659,980원</span> <span class="pct">12.2%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('E. 수평 / 기울어짐')" style="--accent:#8A93A1" data-type="E. 수평 / 기울어짐">
+        <div class="type-dot" style="background:#8A93A1"></div>
+        <div class="type-info">
+          <div class="type-name">E. 수평 / 기울어짐</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:29%;background:#8A93A1"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#8A93A1">4건</span> <span class="amt">647,500원</span> <span class="pct">11.9%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('F. 중심봉 가스압 / 높낮이')" style="--accent:#3D6FE0" data-type="F. 중심봉 가스압 / 높낮이">
+        <div class="type-dot" style="background:#3D6FE0"></div>
+        <div class="type-info">
+          <div class="type-name">F. 중심봉 가스압 / 높낮이</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:93%;background:#3D6FE0"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#3D6FE0">13건</span> <span class="amt">375,140원</span> <span class="pct">6.9%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('G. 유격 / 흔들림 / 소음')" style="--accent:#2E86C6" data-type="G. 유격 / 흔들림 / 소음">
+        <div class="type-dot" style="background:#2E86C6"></div>
+        <div class="type-info">
+          <div class="type-name">G. 유격 / 흔들림 / 소음</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:100%;background:#2E86C6"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#2E86C6">14건</span> <span class="amt">1,244,200원</span> <span class="pct">22.9%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('H. 착좌감 / 쿠션 / 강도')" style="--accent:#4FA567" data-type="H. 착좌감 / 쿠션 / 강도">
+        <div class="type-dot" style="background:#4FA567"></div>
+        <div class="type-info">
+          <div class="type-name">H. 착좌감 / 쿠션 / 강도</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:50%;background:#4FA567"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#4FA567">7건</span> <span class="amt">219,100원</span> <span class="pct">4.0%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('I. 사양변경 / 오구매')" style="--accent:#ABAEB1" data-type="I. 사양변경 / 오구매">
+        <div class="type-dot" style="background:#ABAEB1"></div>
+        <div class="type-info">
+          <div class="type-name">I. 사양변경 / 오구매</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:21%;background:#ABAEB1"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#ABAEB1">3건</span> <span class="amt">60,000원</span> <span class="pct">1.1%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('J. 틸팅 / 기능 불만')" style="--accent:#003EFF" data-type="J. 틸팅 / 기능 불만">
+        <div class="type-dot" style="background:#003EFF"></div>
+        <div class="type-info">
+          <div class="type-name">J. 틸팅 / 기능 불만</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:21%;background:#003EFF"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#003EFF">3건</span> <span class="amt">545,180원</span> <span class="pct">10.0%</span></div>
+        </div>
+      </div>
+      <div class="type-card" onclick="filterType('K. 기타 / 강성 교체요구')" style="--accent:#56585A" data-type="K. 기타 / 강성 교체요구">
+        <div class="type-dot" style="background:#56585A"></div>
+        <div class="type-info">
+          <div class="type-name">K. 기타 / 강성 교체요구</div>
+          <div class="type-bar-wrap"><div class="type-bar" style="width:50%;background:#56585A"></div></div>
+          <div class="type-meta"><span class="badge" style="background:#56585A">7건</span> <span class="amt">573,900원</span> <span class="pct">10.6%</span></div>
+        </div>
+      </div>
+    <div class="section-title">제품별 접수 건수</div>
+    <div class="prod-row" data-prod="T50" onclick="filterProd('T50')"><span class="prod-name">T50</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:100%"></div></div><span class="prod-cnt">21건</span></div><div class="prod-row" data-prod="T80" onclick="filterProd('T80')"><span class="prod-name">T80</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:43%"></div></div><span class="prod-cnt">9건</span></div><div class="prod-row" data-prod="T60" onclick="filterProd('T60')"><span class="prod-name">T60</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:43%"></div></div><span class="prod-cnt">9건</span></div><div class="prod-row" data-prod="GX" onclick="filterProd('GX')"><span class="prod-name">GX</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:43%"></div></div><span class="prod-cnt">9건</span></div><div class="prod-row" data-prod="리니에" onclick="filterProd('리니에')"><span class="prod-name">리니에</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:19%"></div></div><span class="prod-cnt">4건</span></div><div class="prod-row" data-prod="T60 AIR" onclick="filterProd('T60 AIR')"><span class="prod-name">T60 AIR</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:19%"></div></div><span class="prod-cnt">4건</span></div><div class="prod-row" data-prod="T50 AIR" onclick="filterProd('T50 AIR')"><span class="prod-name">T50 AIR</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:19%"></div></div><span class="prod-cnt">4건</span></div><div class="prod-row" data-prod="트레보" onclick="filterProd('트레보')"><span class="prod-name">트레보</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:14%"></div></div><span class="prod-cnt">3건</span></div><div class="prod-row" data-prod="탭플러스" onclick="filterProd('탭플러스')"><span class="prod-name">탭플러스</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:10%"></div></div><span class="prod-cnt">2건</span></div><div class="prod-row" data-prod="T90" onclick="filterProd('T90')"><span class="prod-name">T90</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:10%"></div></div><span class="prod-cnt">2건</span></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="content-header">
+      <h2>접수 상세 내역</h2>
+      <span id="filterLabel"></span>
+      <span class="count-badge" id="countLabel">71건</span>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="searchBox" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="applyFilter()">
+    </div>
+    <div id="cardList">
+      
+      <div class="row-card" data-type="A. 냄새 / 유해성" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#6E5FC6">A. 냄새 / 유해성</span>
+          <div class="row-num">P202604300002</div>
+          <div class="row-customer">김혁</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/가죽 냄새 불만 , 회수품 양산품 동일수준</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/6 ★ 화 요일제 &gt; 빠른 날짜 방문 요청 必 ★★ 제품 선회수 必 ★★ 2026-04-28 T80HLDA1KK L841LW T80_HLDA_WW (메쉬+천연가죽/크림) 사용중 가죽냄새 심함으로 문의 &gt; 사용 안하실때 직사광선이 닿지 않는 그늘에서 충분한 환기 통풍 방법 안내 &gt;제품 환불 원하심. 냄새가 빠지지 않은 냄새라고 함 &gt;부품, 상품권, 새제품 교체 안내 미수긍 &gt; 해당 요일제 지역 방문으로 미수긍 빠른 방문 요청</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">514,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="B. 파손 / 찍힘" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#C65878">B. 파손 / 찍힘</span>
+          <div class="row-num">P202604230054</div>
+          <div class="row-customer">김민성</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 암패드</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고객 취급 부주의 패드찍힘 시공완결사진 확인시 이상없음</div>
+          <div class="row-req"><strong>고객 요구:</strong> 변경날짜 : 2026-05-11 연기사유 : 고객연기 비고 : 05/04 2026-03-18 AJ09김정만 T61HLDAM0KK 5H1ASG T60 AIR HLDA M (그레이프레임/메쉬/그레이) 1EA - 우측 팔걸이 패드에 오염 되어 교체 요청 &gt; 사용 도중 발생된 오염 아님 주장 및 초기 오염이나 확인 못한 점 주장 하여 1회성 무상 교체 안내 &gt; 좌측 팔걸이 오염 여부가 있으니 좌측 팔걸이도 무상 교체 요구 하여 1년 이내 동일 현상 발…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">322,900<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="B. 파손 / 찍힘" data-prod="GX">
+        <div class="row-left">
+          <span class="tag" style="background:#C65878">B. 파손 / 찍힘</span>
+          <div class="row-num">P202604240005</div>
+          <div class="row-customer">김도헌</div>
+          <div class="row-prod">GX</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 파손/등판 철물 고정 볼트 파손/20241114
+좌판/고객/좌판 스폰지 꺼짐 불만 고객 강성 소모품 1년 이상 사용</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/11 [CS박상순(S) 4/29 추가건] [게이밍의자] 2024-11-23 AD12최기수 G20HDA0KK CM9WW GX HDA (화이트프레임/카멜레온그레이) 1 02_ 1)점검 시 등판 연결 고정나사 부러짐 확인되어 등판 교체 필요 2)좌판 전면 쿠션 꺼짐현상 구조적 문제 주장하시며 교체 요청 &gt;등판, 좌판 지참 후 방문 교체 안내 01_착석 시 등판 흔들거림 심하여 점검요청 &gt;방문점검 후 이상 확인 시 필요 부품 지참 후 재방문 조치 …</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">22,900<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="B. 파손 / 찍힘" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#C65878">B. 파손 / 찍힘</span>
+          <div class="row-num">P202604290077</div>
+          <div class="row-customer">김민호</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 베이스</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 파손 없음 고객 강성 교체</div>
+          <div class="row-req"><strong>고객 요구:</strong> ★05/11 고객요청일★ ★ 오후 15시 이전 방문 요청 / 베이스 교체 필요할 경우 교체 및 미사용 조치품 반품 必★ 2022-10-29 AD미사용4 T800HLDA 481 T80 헤드레스트 등판메쉬 플라스틱베이스 사양 1EA 중심봉이 점점 내려가고 있음 &gt; 중심봉 지참 후 방문 교체 안내 드렸으나, 지속 베이스 균열로 인한 하자 주장 하여 베이스+중심봉 지참 후 현장 점검 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">9,600<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="플릿">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202605080025</div>
+          <div class="row-customer">김승민</div>
+          <div class="row-prod">플릿</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 정상조립 고객 조립미숙 강성 교체</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/13 [제품 교체] 기존 제품 나사선 위치 확인 필요★ [감성 ★★★] 2026-05-07 (온라인택배) N10E0KK 5F1WW 플릿 (화이트 프레임/더스티그레이) 5EA - 다른 제품과 비교 시 후레임 나사선 위치 상이하여 제품 교체 요청 &gt; 사진 발송 안내 드렸으나, 재포장 하여 사진 발송 거부 &gt; 후레임 부품 지참 후 방문 점검 안내 미수긍 &gt; 제품 교체 강경하게 주장 하여 현장 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">76,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604220039</div>
+          <div class="row-customer">박종호</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 헤드</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/사선 조립 인서트 뭉그러짐</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/30 ★단순조치로 해결 불가시 헤드, 등판 교체 필요★ 2026-04-06 TC01김기진** T50HF0VK 456BK T50 HF (블랙프레임/차콜) 1EA 헤드레스트와 등판 조립 볼트가 헛돌아 분해도 조립도 되지 않음 &gt; 헤드레스트 및 등판 지참 후 방문예정 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">28,800<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="T50|T20 2세대">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604300053</div>
+          <div class="row-customer">김보경</div>
+          <div class="row-prod">T50 / T20 2세대</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조립 미숙 , 조치품 미사용</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/12 ★비대면 교체 요청 / 미사용 조치품 반품 必★ L/N 2025-08-29 VTNB200HF 451A T20(화이트프레임/다크그레이) 1EA - 틸트 3EA 중 1EA 나사 헐겁고 느슨 하여 앉았을 때 흔들림 [영상 첨부] &gt; 한 번에 빠른 조치 요청 하여 틸트,중심봉 지참 후 방문 점검 이후 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">27,860<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="T50|탭플러스">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202605020026</div>
+          <div class="row-customer">문형식</div>
+          <div class="row-prod">T50 / 탭플러스</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고객 조립 미숙 정상 조립</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/13 ★조립 미숙인지 점검 후 등판 문제시 개봉하여 교체 조립 요망 [시디즈닷컴 접수] 2026-02-07 VTNB200HF 451A T20(화이트프레임/다크그레이) 1 좌판과 등판 연결부위 나사 조임 과정에서 3개중 2개가 1/3정도 밖에 들어가지 않음 &gt; 등판,볼트 지참 후 등판 문제 시 교체 조립 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">25,160<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604210001</div>
+          <div class="row-customer">유성훈</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 팔걸이</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/단수에 걸치지 않고 사용 , 고객 사용 미숙</div>
+          <div class="row-req"><strong>고객 요구:</strong> [방문 희망일: 2026.04.29] 2025-08-02 AJ13양운모 T80HLDA1KK L941LW T80_HLDA_WW (메쉬+천연가죽/크림) 1 팔꿈치에 힘을 조금 주면 좌측 팔걸이 부분이 고정이 안되는 것처럼 훅 내려가버림. &gt;좌측 팔걸이 지참 후 방문점검 후 이상확인 시 부품 교체 안내 / [방문 희망일: 2026.04.29] 2025-08-02 AJ13양운모 T80HLDA1KK L941LW T80_HLDA_WW (메쉬+천연가죽/크림…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">21,630<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="리니에|트레보">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604060046</div>
+          <div class="row-customer">이안나</div>
+          <div class="row-prod">리니에 / 트레보</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/사선 조립으로 인한 인서트 뭉그러짐 체결 불가</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/14 ★조립 미숙 경우 미사용 조치품 반품 必 2026-04-03 (온라인택배) S40DNE0KK WW 트레보(화이트프레임) 1EA - 등판+좌판 연결 부위 나사 3EA 중 1EA 나사 헛돌아서 고정 불가 [영상 첨부] &gt; 볼트 및 등판 지참 후 현장 점검 및 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">14,590<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604290062</div>
+          <div class="row-customer">김도영</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 헤드</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조립 미숙 사선 조립</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/06 2026-04-29 (온라인택배) T50H1VG WW T50 헤드레스트(WW)_로고캡포함 1EA - 헤드레스트 나사 체결 도중 헛돌아서 분리 불가 [영상 첨부] &gt; 헤드레스트 지참 후 시공팀 방문 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">12,800<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604270074</div>
+          <div class="row-customer">강지연</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 헤드</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/사선 조립 인서트 뭉그러짐</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/30 ★개봉전 선 검사 후 문제시 조치품 교체 必 2026-03-13 T50H1VG WW T50 헤드레스트(WW)_로고캡포함 1 이지리페어 헤드레스트 체결 안됨 헛돔, 흔들거림 문의 &gt; 조치품 지참하여 방문 교체</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">12,800<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="트레보">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604140021</div>
+          <div class="row-customer">이은지</div>
+          <div class="row-prod">트레보</div>
+          <div class="row-part">부위: 몸통</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 조립/등판 정상 조립 확인 조립 미숙</div>
+          <div class="row-req"><strong>고객 요구:</strong> [방문 희망일: 2026.04.22] L/N 2026-04-01 S40DNE0KK WW 트레보(화이트프레임) 1 제품 수령 후 확인 시 몸통 안쪽 크랙 및 등좌판 연결 볼트 1EA 체결 안됨 &gt;몸통 지참하여 부품 교체 및 등좌판 조립 점검 안내 &gt;점검 후 추가 접수 시 필요 조치품 기재하여 접수 부탁드립니다.</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">8,400<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="C. 조립·시공 불량" data-prod="T40">
+        <div class="row-left">
+          <span class="tag" style="background:#C68A3D">C. 조립·시공 불량</span>
+          <div class="row-num">P202604280037</div>
+          <div class="row-customer">하우람</div>
+          <div class="row-prod">T40</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/중심봉 높여놓은 상태 , 고객 사용 미숙</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/8 L/N 2024-02-05 T400HLDA 2H6X T40_HLDA(블랙프레임/블랙) 1 의자 높이 조절이 안됨 [영상첨부] &lt; 시공팀 중심봉 교체</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,400<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="D. 외관 / 오염 / 표면" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#2E9B8A">D. 외관 / 오염 / 표면</span>
+          <div class="row-num">P202604140043</div>
+          <div class="row-customer">차차모터스</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/좌판 주름 벨크로 형식 및 베이스 리브 자국 양산품 동일 고객강성</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/27 환불건&gt;&gt; ★제품회수 必★ 2026-04-13 AD19조준호 T80HLDA1KK 451NWW T80_HLDA_WW (메쉬+패브릭/라이트그레이) 1EA 02. 현장 &gt; 틸트에서 소음이 심하게 발생 좌판 커버가 커서 앞으로 밀림 고객 환불 요청 &gt; 부품 교체와 상품권 보상 안내하였으나 미수긍 환불 요청으로 수거 안내 01. 좌판 커버 밀착이 되어 있지 않고 들뜸 현상 및 베이스 부위 주름 확인 되어 교체 요청 &gt; 좌판 지참 후 시공팀 현장…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">443,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="D. 외관 / 오염 / 표면" data-prod="트레보">
+        <div class="row-left">
+          <span class="tag" style="background:#2E9B8A">D. 외관 / 오염 / 표면</span>
+          <div class="row-num">P202604030007</div>
+          <div class="row-customer">김효진(KIM HYO JIN)</div>
+          <div class="row-prod">트레보</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 외관/후레임 사상 표면 이물질 등판 사상 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/09 ★ 매우 예민 외관 스크레치 ,오염 제품의 검은 점 없는 제품으로 내려주세요 必 2026-04-01 S40DNE0KK DSP 트레보(더스티핑크프레임) 1 마감처리 잘 되어 있지 않으며 오염 찍힘 스크레치로 인한 문의 &gt; 사출로 인한 정상 안내 미수긍 부품, 상품권 안내 미수긍 새제품 교체 요청 &gt; 이후 동일 증상 시 부품단위로 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">97,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="D. 외관 / 오염 / 표면" data-prod="링고 2세대">
+        <div class="row-left">
+          <span class="tag" style="background:#2E9B8A">D. 외관 / 오염 / 표면</span>
+          <div class="row-num">P202604270019</div>
+          <div class="row-customer">고다정</div>
+          <div class="row-prod">링고 2세대</div>
+          <div class="row-part">부위: 발걸이</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조립 이상없음 , 외관 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/14 고객요청일자 ★ 15시이전요청★ SA05유경민T 5/6 방문추가건&gt; 2026-03-19 S51ACF1VG A442BW 링고 학생의자_고정중심봉(그레이쉬베이지) 1 02- 바꿔도 유격 발생 베이스가 문제인듯 베이스,중심봉 같이 내려주셔서 해야할듯합니다 &gt; 조치품 지참 재방문 안내 01- 조립시가운데 부터조립하였음에도 유격발생 &gt; 발받침 지참 방문 확인 후 단순조치 불가시 교체 안내 / 5/6 고객요청일자 ★ [시디즈닷컴 접수] 2026-…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">50,500<span>원</span></div>
+          <div class="row-count">4건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="D. 외관 / 오염 / 표면" data-prod="T60|T60 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#2E9B8A">D. 외관 / 오염 / 표면</span>
+          <div class="row-num">P202604250002</div>
+          <div class="row-customer">임지윤</div>
+          <div class="row-prod">T60 / T60 AIR</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/완결 사진 확인시 오염 확인 불가</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/6 2026-04-24 AD13고지훈 T61HLDAM0KK 5H1WW T60 AIR HLDA M (화이트프레임/메쉬/라이트그레이) 1 등판 오염으로 문의 &lt;시공팀 등판 교체</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">29,380<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="D. 외관 / 오염 / 표면" data-prod="GX">
+        <div class="row-left">
+          <span class="tag" style="background:#2E9B8A">D. 외관 / 오염 / 표면</span>
+          <div class="row-num">P202604300003</div>
+          <div class="row-customer">김현진</div>
+          <div class="row-prod">GX</div>
+          <div class="row-part">부위: 팔걸이</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/게이트 사출부 외관 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/12 ★미조립 상태 / 출고된 부품 현장 확인 하여 고객 동의 후 부품 교체 必★ 2026-04-28 TF01최재강 G20HDA1KK 4C1BWW GX HDA (화이트프레임/그레이) 1EA - [비대면 시공] 베이스 이음새 부분 도색 벗겨짐, 팔걸이 게이트 부위 파임 AS 요청 &gt; 게이트 사출 부위 경우 정상 범위 및 교체 이후에도 동일 할 수 있는 점 안내 드렸으나, 교체 요청 하여 베이스 포함 부품 지참 후 방문 교체 및 조립 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">28,800<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="D. 외관 / 오염 / 표면" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#2E9B8A">D. 외관 / 오염 / 표면</span>
+          <div class="row-num">P202603200070</div>
+          <div class="row-customer">장민진</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 팔걸이</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/완결 사진 오염 확인 불가</div>
+          <div class="row-req"><strong>고객 요구:</strong> 3/30 2026-03-20 AD02김희준 T61HLDAM0KK 5G1BWW T60 HLDA M (화이트프레임/패브릭/라이트그레이) 1 구매자 010-2071-7790 수령후 팔걸이 오염으로 인한 문의, 지우려 했으나 지워지지 않음 &gt; 조치품 지참하여 방문 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">11,300<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="E. 수평 / 기울어짐" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#8A93A1">E. 수평 / 기울어짐</span>
+          <div class="row-num">P202601160010</div>
+          <div class="row-customer">김명수</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고객 바닥 수평 틀어짐</div>
+          <div class="row-req"><strong>고객 요구:</strong> 1/22 ★줄자, 수평계 지참 후 현장사진 첨부 必★ ★개봉전 선 검사 후 문제 없을시 제품 정상반품 요망 必★ 2026-01-14 AD10김병집 T61HLDAM0KK 5H1ASG T60 AIR HLDA M (그레이프레임/메쉬/그레이) 1 좌판 기울어짐으로 강성 클레임 &gt;새제품 개봉전 제품 점검 이후 문제시 제품 교체 안내 &lt;부품 교체 아내 미수긍&gt; ㄴ 고객 제품 지참하여 현장 문제시 맞교체 강성 요구 현장 점검 후 제품 문제 있을 시 교체 안…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">309,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="E. 수평 / 기울어짐" data-prod="GX">
+        <div class="row-left">
+          <span class="tag" style="background:#8A93A1">E. 수평 / 기울어짐</span>
+          <div class="row-num">P202604040003</div>
+          <div class="row-customer">김준구</div>
+          <div class="row-prod">GX</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/수평 검사 기준 내 , 수평 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/14 환불건 &gt;&gt;고객 카톡 사용 X / 방문시간 문자 안내 必 ★제품 회수 必 [CS유영만팀 4/9 추가건] 2026-04-03 AJ12김현호 G20HDA1KK 4C1BWW GX HDA (화이트프레임/그레이) 1 02-좌판 뒷부분 제품 기울어짐 / 고객 환불 요구 &lt;제품 교체 거부/ 환불 접수 01-팔걸이 및 좌판 기울어짐 , 수평 안맞음 / 환불 요구 &lt;문제시 환불 가능 / 점검 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">268,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="E. 수평 / 기울어짐" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#8A93A1">E. 수평 / 기울어짐</span>
+          <div class="row-num">P202604160096</div>
+          <div class="row-customer">손승우</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 지원/2년이상 사용후 수평 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/27 ★틸트 교체 필요할 경우 사용 및 미사용 조치품 반품 必★ US07정동덕 04/22 방문추가건 &gt;&gt; L/N 2023-11-10 VTNE500HLDA 456 T50_HLDA(블랙프레임/차콜) 1EA 02 수평 확인 결과 1cm 차이남 중심봉 문제로 확인 되어 교체 필요 &gt; 부품 지참 후 방문 교체 안내 01 앉았을 때 우측 부위가 좌측 부위에 비해 낮아 수평 확인 요청 &gt; 정확한 확인을 위해 방문 점검 및 교체 필요할 경우 2차 방문 …</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">51,700<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="E. 수평 / 기울어짐" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#8A93A1">E. 수평 / 기울어짐</span>
+          <div class="row-num">P202604210076</div>
+          <div class="row-customer">이동한</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 좌판 수평 정상 확인 소모품 1년  이상사용건</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/8 CW11이영진T 4/28 방문추가건 &gt;&gt; 2025-04-11 CW05전성민 VTNE500HF 456 T50_HF(블랙프레임/차콜) 1 02-바닥 평탄도 양호 하나 좌판 및 팔걸이 수평 고객님 불편하시는대로 치우침 치수 사진 및 동영상첨부 &gt; 시공팀확인 : 좌판만 교체요청 &gt; 좌판 지참 후 방문교체안내 01-의자가 한쪽으로 기울어짐 &gt; 스펀지꺼짐은 유상안내 &gt; 현장에서 점검 후 불량일 경우 영상첨부하여 추가건 요청 必</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">18,800<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604140038</div>
+          <div class="row-customer">정소미</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/중심봉 가스압 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/20 ★현장 점검 필요 / 교체 필요할 경우 교체 必★ 2026-04-10 DD13김성규 VTNE500HDA 456 T50_HDA(블랙프레임/차콜) 1EA - 높이 조절 불가 &gt; 영상 발송 안내 드렸으나, 발송 불가 및 현장 확인 요청 하여 중심봉 지참 후 방문 교체 안내 / 04/25 [제품 교체건] DD04김찬년 04/20 방문추가건 &gt;&gt; 2026-04-10 DD13김성규 VTNE500HDA 456 T50_HDA(블랙프레임/차콜) 1E…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">232,000<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202603270026</div>
+          <div class="row-customer">이미경</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 높낮이 기능 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 변경날짜 : 2026-04-18 연기사유 : 일정연기 비고 : 4/14 화.목.토요일제 ★ 미사용 조치품은 반품 必 2024-10-12 TE16오한균 VTNF500HLDA 451M T50_HLDA(화이트프레임/웜그레이) 1 02-추가건누락/시공팀 현장 소견) 중심봉 교체가 필요해 보이긴 한데, 틸트도 지참요청 &gt; 지참 후 방문교체안내 01-의자 높이 조절이 안됨 &lt; 영상 요청했으나. 어렵다하여 점검 안내 / 변경날짜 : 2026-04-18 연기…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">54,440<span>원</span></div>
+          <div class="row-count">4건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604240043</div>
+          <div class="row-customer">강해창</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 가스압 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/11 고객요청일자★ 미사용부품 반품부탁드립니다★2022-05-14 DC04신종형 TNA500HLDA 456 NEW T500HLDA 1 앉으면 저절로 천천히 내려가기 때문에 영상촬영 어려움 호소 &gt; 부품지참 후 점검후에 교체안내, 미사용부품 반품안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">51,700<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604060071</div>
+          <div class="row-customer">박민정</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/유격 불만 와블 검사 기준 내</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/13 CS유영만(S) 4/8 추가건&gt;&gt; L/N 2022 년 05 월 25 일 OALTNA500A1 451A 02. 현장&gt; 의자 흔들림으로 중심봉 접수 요청 &gt; 조치품 지참하여 방문 교체 안내 01. 좌판 기울어짐 문의 &gt; 사진상 확인 어려움 방문점검 안내 &gt; 이후 문제시 조치품 지참하여 방문교체 출장비 안내 중심봉1개 흔들림 AS-1A-00B-XX(1)()</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604140074</div>
+          <div class="row-customer">서용빈</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/중심봉 와불 기준이내 확인 0.91</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/27 [04/22 CS최봉용(S)팀 추가건] L/N 2025.07.08 VTNE500HLDA 456 T50_HLDA(블랙프레임/차콜) 1EA 02- 시공팀 : 중심봉 유격 커짐, 좌우 높이 차이로 틸트 교체 필요 &gt; 틸트 및 중심봉 지참하여 재방문 안내 01- 좌판 좌우높이가 맞지 않고 조금씩 덜컹거림 &gt; 방문점검 통해 원인파악 후 2차 방문조치 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604220055</div>
+          <div class="row-customer">이승환</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 중심봉 가스압 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> [방문 희망일: 2026.04.30] 2022-12-16 AZ03김재엽 TNF500HLDA 451M ALL NEW T500HLDA(2023년형) 화이트쉘, 451M, 그레이 1 의자에 앉아있을 때 가끔씩 의자가 아래로 내려감 &gt;중심봉 지참하여 방문 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604070042</div>
+          <div class="row-customer">신정범</div>
+          <div class="row-prod">T50 AIR</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/가스압 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/15 L/N 2021.09.17 TXN520HLDA 2D1 T50AIR시리즈 화이트쉘,등/좌 신규메쉬(원톤).grey 1EA 등판 좌판 오염 / 양쪽 팔걸이 찢어짐 / 의자 높낮이 조절 안됨으로 교체 요청 &gt; 등판, 좌판, 양쪽 팔걸이, 중심봉 지참 후 방문 예정 / 중심봉만 무상 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604140058</div>
+          <div class="row-customer">안동주</div>
+          <div class="row-prod">T50 AIR</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 중심봉 가스압 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/28 TF01최재강 04/20 방문추가건 &gt;&gt; L/N 2021-08-09 TXN520HLDA 2D1 T50AIR시리즈 화이트쉘,등/좌 신규메쉬(원톤).grey 1EA 02 시공팀: 중심봉 교체 필요 &gt; 부품 지참 후 방문 교체 안내 01 높낮이 고정 불가 &gt; 중심봉 교체 필요하나 영상 발송 진행 어렵다고 하여 &gt; 방문 점검 이후 교체 가능 안내 및 총 소요시간 2주 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604240072</div>
+          <div class="row-customer">장성현</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 중심봉 가스압 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/30 L/N 2023.01.27 OALTNF500A1 451M 좌판 흔들림, 좌판 폼꺼짐, 앉으면 중심봉내려감 &gt; 현장에서 점검 후 불량일 경우 영상첨부하여 추가건 요청 必</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202603250037</div>
+          <div class="row-customer">조민규</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/중심봉 앉을시 내려감 불만 양산품 동일</div>
+          <div class="row-req"><strong>고객 요구:</strong> 3/31 [시디즈닷컴 접수] 2026-03-10 T80HLDA1KK 451NWW T80_HLDA_WW (메쉬+패브릭/라이트그레이) 1 앉으면 의자가 어느정도 내려감. 동영상 참조 &gt; 중심봉 유격설계로 내려갈 수 있으나 범위가 큰 것으로 보여짐. 중심봉 지참 방문 비교 후 문제시 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">3,700<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604240033</div>
+          <div class="row-customer">김은준</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 중심봉 가스압 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> [방문 희망일: 2026.05.06] L/N 2021-07-07 T800HLDAS A495 T80 헤드레스트 인조가죽 알루미늄베이스 사양 1 의자를 높여도 고정되지 않고 사용 중 내려감 &gt;조치품 지참하여 방문 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">3,300<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="GX">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604050018</div>
+          <div class="row-customer">나승호</div>
+          <div class="row-prod">GX</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/와블 기준 내 , 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/20 GA12임종호T 4/14 방문추가건 &gt; 2025-03-05 G20HDA0KK 4C1BWW GX HDA (화이트프레임/그레이) 1 좌판 기울어짐 &gt; 방문 점검 후 조치품 필요시 재방문 안내 02- 중심봉 흔들림 있습니다 참고 부탁드립니다. 접수 부탁드립니다 &gt; 접수 후 알림톡 발송</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">3,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="F. 중심봉 가스압 / 높낮이" data-prod="탭스퀘어">
+        <div class="row-left">
+          <span class="tag" style="background:#3D6FE0">F. 중심봉 가스압 / 높낮이</span>
+          <div class="row-num">P202604080014</div>
+          <div class="row-customer">전용</div>
+          <div class="row-prod">탭스퀘어</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/가스압 정상 , 고객 강성</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/13 ★높낮이 고정 불가 증상 확인 후 교체 必★ L/N 2022-03-23 TNA402HF 2H6X TAB SQUARE-블랙바디,헤드,고정팔 1EA - 높낮이 고정 불가 &gt; 유압 빠져 고정 어려운 점 및 영상 요청 드렸으나, 서서히 증상이 발생 되는 점으로 영상 촬영 불가하다고 하여 부품 지참 후 방문 교체</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">3,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="GX|GX">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202605080023</div>
+          <div class="row-customer">이해민</div>
+          <div class="row-prod">GX, T50 / GX</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조절형 제품 유격 불만 , 고객 강성 교체 요구</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/15 ▶2026-05-08 G20HDA2KK CN9WW GX HDA (화이트프레임/카멜레온 메쉬+831N 좌판) AD16윤정섭 1 ▶2026-05-08 T50HLDA0VK 451MWW T50 HLDA (화이트프레임/웜그레이) AD16윤정섭 1 02. 현장 &gt;의자2개모두 부분교체거부 제품으로 교체원함 vip t50은 팔걸이 소음 좌판흔들림 gx는 틸트 마감이 날카로움, 틸팅이 부자연스럽다고주장 &gt; 조치품 지참하여 방문 교체 교체시 동일 제품 …</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">523,200<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="GC-PRO">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604040024</div>
+          <div class="row-customer">이재준</div>
+          <div class="row-prod">GC-PRO</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 소음/좌판 쿨림팬 소음 불만 양산품 동일수준</div>
+          <div class="row-req"><strong>고객 요구:</strong> [방문 희망일: 2026.04.25] [4/15 고객추가건] 2026-03-09 AJ06조강민 G10HDAW2KK A441QW GC PRO 쿨링시트 (화이트프레임/그레이레드) 1 02_좌판 교체 후 확인 시에는 괜찮았으나, 시공팀간 후 재작동 시 소음 재발생 및 이전보다 더 큰 소음으로 재점검 요청 &gt;좌판 지참하여 재방문 점검 진행 안내 01_쿨링시트 작동 시 소음 심함으로 점검 요청하심 &gt;좌판 지참하여 점검 후 이상확인 시 부품 교체 안내 &gt;…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">175,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604130111</div>
+          <div class="row-customer">박영준</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/럼버 고정력 양산품 동일 , 조절형 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> ★5/8 고객 요청 날짜 화/금요일제 [4/28 고객 추가건] 2026-04-10 AZ05이승재 T61HLDAM0KK 5G1DIG T60 HLDA M (차콜프레임/패브릭/차콜) 1 03_4/28 등판교체 했음에도 럼버서포트 헐거움 동일 증상으로 문의 &gt;시공팀 확인 시 등판 재교체 해봐야 할 것 같다 하시어 등판 지참 재방문 안내 &gt;2회 등판 교체건으로 교체 후 동일 증상 재발생 시 제품 교체 가능함 안내 02_01)방문점검 시 등판 럼버 좌우 …</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">95,300<span>원</span></div>
+          <div class="row-count">4건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="리니에">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604220059</div>
+          <div class="row-customer">오진주</div>
+          <div class="row-prod">리니에</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/1단 유격 불만 , 양산품 동일 수준</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/30 CS유영만(S) 방문추가건 &gt;&gt; L/N 2023-01-06 TXNA250F 457L 리니에_메쉬(화이트프레임/애쉬그린) 1EA 02 시공팀: 틸트,중심봉 1단계씩 밀림 &gt; 지참 후 시공팀 방문 안내 01 좌판 뒷부분 가라 앉은 느낌 있음, AS 출장 요청 &gt; 스펀지 꺼짐 현상으로 확인 되어 좌판 지참 후 방문 교체 및 전체적 점검 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">93,900<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T50 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604250016</div>
+          <div class="row-customer">심지섭</div>
+          <div class="row-prod">T50 AIR</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 기능/럼버 고정력 저하/250614
+틸트/고객/1단 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/11 고객요청일자★ [시디즈닷컴 접수] 2025-06-14 VTXA520HLDA 2D6 T50AIR(블랙프레임/블랙) 1 틸팅 고정시 뒤로 살짝 밀림. 좌판 소음발생. 럼버 상단 부분만 앞으로 고정되어 평평하게 받쳐주지 않음, &gt; 조치품 지참 기사방문하여 문제 부분 확인 후 교체 안내 / 5/11 고객요청일자★ [시디즈닷컴 접수] 2025-06-14 VTXA520HLDA 2D6 T50AIR(블랙프레임/블랙) 1 틸팅 고정시 뒤로 살짝 밀림.…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">85,460<span>원</span></div>
+          <div class="row-count">5건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604120023</div>
+          <div class="row-customer">박장용</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조절형 좌판 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/08 [04/30 DC03배병도팀 추가건] 2026-02-14 DC08박용우 VTNF500HDA 452M T50_HDA(화이트프레임/아이보리) 1EA 02- 시공팀 : 착석 후 좌우로 움직일때 좌판이 덜 고정된 느낌 있으며 소음 발생 &gt; 좌판 골격, 틸트, 중심봉 지참 후 재방문 예정 안내 01- 착석 후 움직이면 좌판이 한쪽으로 살짝 기울고, 덜컹덜컹 거림 &gt; 방문점검 통해 정확한 원인 파악 후 2차방문 예정 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">64,040<span>원</span></div>
+          <div class="row-count">5건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T60 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604270006</div>
+          <div class="row-customer">권용대</div>
+          <div class="row-prod">T60 AIR</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/1단 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 변경날짜 : 2026-05-11 연기사유 : 고객연기 비고 : ★05/06 고객요청일★ L/N 2025.10.10 T61HLDAM0KK 5H1WW T60 AIR HLDA M (화이트프레임/메쉬/라이트그레이) 1EA 틸팅 0단계 고정상태인데도 앉으면 조금 뒤로 밀림, 까딱거림 &gt; 틸트 및 중심봉 지참 후 방문점검 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">58,900<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T60 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604020045</div>
+          <div class="row-customer">신영균</div>
+          <div class="row-prod">T60 AIR</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/1단 유격 불만 1mm 이하</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/24 점검 후 필요시교체부탁드립니다★ 2026-02-25 AZ01이수완 T61HLDAM0KK 5H1WW T60 AIR HLDA M (화이트프레임/메쉬/라이트그레이) 1 90도 고정상태에서 의자가 고정되지 않고 움직임(영상有) &gt; 틸트,중심봉 지참후방문교체안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">51,500<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="GX">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604200053</div>
+          <div class="row-customer">이성록</div>
+          <div class="row-prod">GX</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/댑스 유격 소음 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/6 CS김지한(S) 4/24 추가건 &gt;&gt; 2025-04-16 G20HDA0KK CM9BK GX HDA (블랙프레임/카멜레온블랙) AD07장우진 1 02. 현장 &gt; 소음 심하게 발생 틸트 중심봉 접수 요청 &gt; 조치품 지참하여 방문 교체 01. 뒤로기대서 틸팅시 소음 발생 &gt;방문점검 이후 문제시 조치품 지참하여 재방문 안내 1.틸트소음심하게 있음 틸트 중심봉 신청합니다 2. 동영상첨부 AS-A1-947-XX(1)()</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">26,800<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="GX">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604140069</div>
+          <div class="row-customer">이종헌</div>
+          <div class="row-prod">GX</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조절형 좌판 뎁스 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/06 [04/25 CS홍용재팀 추가건] L/N 2025.10.16 G20HDA0KK 4C1BWW GX HDA (화이트프레임/그레이) 1EA 02- 시공팀 : 캐스터 소음 해결됐으나 틸트 유격으로 틸팅 소음 발생됨 &gt; 틸트 및 중심봉 지참 후 재방문 안내 01- 좌판 유격있고 의자 밀때마다 떡떡 소리남 / 전체적으로도 찌그덕 소리남 캐스터, 좌판 프레임, 중심봉 소음 의심되어 부품 지참 후 방문점검 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">24,800<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604080042</div>
+          <div class="row-customer">김지애</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 팔걸이</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조절형 팔걸이 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 01+02카드 병행 必★팔걸이 흔들림 정상일시 현장 안내 必 / 미사용 자재 정상 반품 요망★ ▶ L/N 2025.06.09 T80HLDA1KK 451NWW T80_HLDA_WW (메쉬+패브릭/라이트그레이) 1EA 우측 팔걸이 흔들림으로 인한 AS 요청 ㄴ 팔걸이 높이 조절 위한 유격 설계 안내 ㄴ 고객 강력 미수긍하며 팔걸이 교체 요청하였음 ㄴ 우측 팔걸이 지참하여 방문 점검 진행해볼 수는 있으나, 정상 판정 받으실 수 있는 점 안내 ▶ L/…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">21,400<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604170072</div>
+          <div class="row-customer">임동섭</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 골격</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조절형 좌판 유격 소음 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/28 고객요청일자 ★ [시디즈닷컴 접수] 2025-10-31 VTNF500HLDA 451M T50_HLDA(화이트프레임/웜그레이) 1 좌판 소음 발생 &gt; 좌판 갈리는 소음으로 보여 골격 지참 방문 확인 후 문제시 교체 &gt; 추가 조치품 필요시 재방문 가능함 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">9,600<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604080009</div>
+          <div class="row-customer">유환철</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/조치품 미사용 , 조절형 좌판 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/20 고객요청일자★ [시디즈닷컴 접수] 2025-11-20 T61HLDAM0KK 5H1WW T60 AIR HLDA M (화이트프레임/메쉬/라이트그레이) 1 움직일때마다 소음발생 &gt; 동영상확인완/ 소음확인되나 정상범위 여부 파악 불가로 조치품 지참 방문 확인 후 문제시 교체 / 뎁스 기능 있는 제품으로 소음발생할 수 있으며 정상일 경우 교체 불가안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">8,200<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="G. 유격 / 흔들림 / 소음" data-prod="T25">
+        <div class="row-left">
+          <span class="tag" style="background:#2E86C6">G. 유격 / 흔들림 / 소음</span>
+          <div class="row-num">P202604130084</div>
+          <div class="row-customer">이호경</div>
+          <div class="row-prod">T25</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고정형 중심봉 유격 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/21 ★등판 젖혀짐 문제 점검 후 조치품 확인및 영상 촬영하여 추가 접수 必 2022-01-04 T250NFCF 459L T25 DG 플렉스등판, 고정중심봉,50_27U(BK) 1 등 기대면 등판이 왼쪽만 넘어감/ 고정형 중심봉 회전함 &lt; 시공팀 중심봉 교체 / 등판 한쪽 젖혀짐은 점검 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">6,100<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="H. 착좌감 / 쿠션 / 강도" data-prod="리니에">
+        <div class="row-left">
+          <span class="tag" style="background:#4FA567">H. 착좌감 / 쿠션 / 강도</span>
+          <div class="row-num">P202604130059</div>
+          <div class="row-customer">강경민</div>
+          <div class="row-prod">리니에</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/착좌감 불만 , 고객 강성</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/20 ★오후방문요청★줄자, 수평계 지참 후 현장사진 첨부 必★L/N 2026.03.20 TXNA250F 457L 리니에_메쉬(화이트프레임/애쉬그린) 1 매장에서 앉아보고 구매했는데 매장과 다르게 발이 뜸, 허벅지 앞쪽부분이 더 올라와있음 &gt; 채팅상담, 홈페이지의뢰 오류 등으로 1차 클레임 큼 &gt; 제품교체요청했으나 부위설계 안내드리고 부품교체안내 &gt; 현장에서 점검 후 필요조치품 교체해드리고 추가 필요시 2차방문안내함</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">93,900<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="H. 착좌감 / 쿠션 / 강도" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#4FA567">H. 착좌감 / 쿠션 / 강도</span>
+          <div class="row-num">P202604100050</div>
+          <div class="row-customer">심명보</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/사용중 좌판 미싱 쏠림 불만 벨크로 형식으로   앞쪽으로 착석시 밀림현살 발생 할수있음</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/18 ★고객 좌판 비교 희망하여 정상일시 현장 재안내 必★ 채팅 &gt;&gt; [04/22 CS김지한(S)팀 추가건] L/N 2026.03.20 T80HLDA1KK 451NWW T80_HLDA_WW (메쉬+패브릭/라이트그레이) 1EA 03- 착석시 좌판이 아래로 밀림, 현장 정상안내 받았으나 점검 희망함 &gt; 좌판 + 쉘 지참 후 비교해드릴 예정 안내 / 불량이 맞을 경우에만 교체 진행 안내 02 - 시공팀 : 양쪽 지참후 비교하여 교체 안내드렸기에…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">30,300<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="H. 착좌감 / 쿠션 / 강도" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#4FA567">H. 착좌감 / 쿠션 / 강도</span>
+          <div class="row-num">P202604220027</div>
+          <div class="row-customer">정진경</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/등판 착석감 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/6 ★카카오톡미사용,문자안내必★ CS최봉용(S)T 4/25 방문추가건 &gt;&gt; 2026-03-18 AJ07성재호 VTNF500HLDA 458D T50_HLDA(화이트프레임/코랄) 1 02-기존보다 메쉬가 탄력이 약함 등판 1개 접수요청, 비교후 동일한 경우 럼버 제거하기로함 &gt; 등판 지참후 현장비교안내 01-등판 매쉬 탄성너무 헐거워 럼버를 밑으로 내렸는데도 닿고 허리가 아픔 호소 &gt; 점검 후 정상일시 럼버제거는 권유안함 안내, 럼버없는 등판교…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">29,500<span>원</span></div>
+          <div class="row-count">3건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="H. 착좌감 / 쿠션 / 강도" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#4FA567">H. 착좌감 / 쿠션 / 강도</span>
+          <div class="row-num">P202604080006</div>
+          <div class="row-customer">양주석</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/착좌감 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/18 고객요청일자★ [시디즈닷컴 접수] 2026-03-18 T61HLDAM0KK 5G1DIG T60 HLDA M (차콜프레임/패브릭/차콜) 1 좌판 가운데 꺼짐 &gt; 허거블폼으로 오목한 형상으로 제작되어 엉덩이를 감싸는 듯한 스폰지로 정상임. &gt; 사용중 불편, 허리아픔 언급하며 항의 &gt; 1회성 좌판 지참 방문 확인 후 문제시 교체. 문제 아닌 경우 추가 조치 어려움 안내(수긍)</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">27,700<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="H. 착좌감 / 쿠션 / 강도" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#4FA567">H. 착좌감 / 쿠션 / 강도</span>
+          <div class="row-num">P202604290033</div>
+          <div class="row-customer">윤금량</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 스폰지</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고객 착좌감 불만 고객 강성 교체 스폰지 경도 정상범위</div>
+          <div class="row-req"><strong>고객 요구:</strong> 05/13 ★미사용 조치품 반품 必★ CS한두헌 05/04 방문추가건 &gt;&gt; 2026-04-22 AJ08조성준 T50HLDA0VK 451MWW T50 HLDA (화이트프레임/웜그레이) 1EA 02 시공팀: 수평은 정상 범위에 해당 되나 앞으로 기운 느낌은 해당 되어 좌판 요청 &gt; 좌판 지참 후 방문 교체 안내 및 정상 범위로 해당 되어 추후 동일 증상으로 처리 어려움 안내 &gt; 스펀지 1~2EA 정도 지참 후 비교 진행 요청 하여 스펀지 2EA 접…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">18,000<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="H. 착좌감 / 쿠션 / 강도" data-prod="GX">
+        <div class="row-left">
+          <span class="tag" style="background:#4FA567">H. 착좌감 / 쿠션 / 강도</span>
+          <div class="row-num">P202604100057</div>
+          <div class="row-customer">김두진</div>
+          <div class="row-prod">GX</div>
+          <div class="row-part">부위: 헤드</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고정력 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/27 월,수요일제 [GB06고훈팀 4/15 추가건] L/N 2024-11-29 G20HDA0KK 4C1BWW GX_HDA(화이트프레임/4C1B 메쉬+831N 좌판)1 02-헤드레스트 캡 빠져 체결이 안됨 /헤드레스트 assy 접수 요청 01-25-08-20 헤드레스트 헐거워 교체 받았으나. 동일하게 헐겁다함 &lt; 점검 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">11,500<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="H. 착좌감 / 쿠션 / 강도" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#4FA567">H. 착좌감 / 쿠션 / 강도</span>
+          <div class="row-num">P202604150066</div>
+          <div class="row-customer">서민경</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 팔걸이</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고정력 차이 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/21 점검후 문제있을시 교체부탁드립니다★2026-04-15 택배 T50AR0VG WW [이지리페어] T50 조절형 팔걸이_우(WW) 1 좌,우 구매했으나 착석기준 우측 팔걸이가 좌측에 비해 헐거움, 영상으로는 잘 보이지 않는다고 말씀하심 &gt; 우측 팔걸이 지참해 현장에서 점검 후 괜찮은 팔걸이로 교체안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">8,200<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="I. 사양변경 / 오구매" data-prod="T60 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#ABAEB1">I. 사양변경 / 오구매</span>
+          <div class="row-num">P202604170052</div>
+          <div class="row-customer">이우현</div>
+          <div class="row-prod">T60 AIR</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/좌판 사양 오구매 고객 강성 환불건</div>
+          <div class="row-req"><strong>고객 요구:</strong> ★환불 &gt;&gt; 회수 必 // 04/23 고객요청일★ 2026-04-17 T61D0KK 5G1CSG [이지리페어] T60 좌판 (그레이) 1EA T60 AIR 사용중이나, 호환되는 T60 좌판 체결이 되질 않음 (프레임 안맞음) &gt; T60 좌판 호환 안됨 안내 시, 홈페이지에는 호환이 되는 것처럼 표기되어있는데 왜 안되냐며 감성 클레임(사진첨부) &gt; T60 좌판 반품비 없이 환불 도와드리겠음 안내, 고객 수긍</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">48,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="I. 사양변경 / 오구매" data-prod="T90">
+        <div class="row-left">
+          <span class="tag" style="background:#ABAEB1">I. 사양변경 / 오구매</span>
+          <div class="row-num">P202604150079</div>
+          <div class="row-customer">손혁민</div>
+          <div class="row-prod">T90</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/중심봉 사양변경 고객 강성 교체건</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/24 VVIP [홈페이지 문의] L/N 2024-01-08 T900HLDA 4B1MNI T90 MNI 프레임+더블라셀 4B1L 메쉬 (TC11) 1 의자 최고 높이 낮아 문의 &lt; 최근 사양 변경으로 의자 높이 높아짐 / 유상 교체 안내 -고객 제품 문제라고 억지 주장, 홈페이지 1:1 문의에 제품 하자로 인한 설계 변경이므로 무상 처리 강성 주장하여 클레임성 일회성 무상 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">6,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="I. 사양변경 / 오구매" data-prod="T90">
+        <div class="row-left">
+          <span class="tag" style="background:#ABAEB1">I. 사양변경 / 오구매</span>
+          <div class="row-num">P202604150076</div>
+          <div class="row-customer">손혁민</div>
+          <div class="row-prod">T90</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/중심봉 사양변경 고객 강성 교체건</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/24 VVIP [홈페이지 문의] 2024-01-16 AJ07성재호 T900HLDA 4B1MNI T90 MNI 프레임+더블라셀 4B1L 메쉬 (TC11) 1 의자 최고 높이 낮아 문의 &lt; 최근 사양 변경으로 의자 높이 높아짐 / 유상 교체 안내 -고객 제품 문제라고 억지 주장, 홈페이지 1:1 문의에 제품 하자로 인한 설계 변경이므로 무상 처리 강성 주장하여 클레임성 일회성 무상 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">6,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="J. 틸팅 / 기능 불만" data-prod="T80">
+        <div class="row-left">
+          <span class="tag" style="background:#003EFF">J. 틸팅 / 기능 불만</span>
+          <div class="row-num">P202605110013</div>
+          <div class="row-customer">김지원</div>
+          <div class="row-prod">T80</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/틸팅 기능 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/15 환불건 &gt;&gt; VVVVIP [CS정윤구팀 5/12 추가건] ★제품 회수 必 2026-05-02 AZ01이수완 T80HLDA1KK 451NWW T80_HLDA_WW (메쉬+패브릭/라이트그레이) 1 02-틸팅기능 정상이고 장력 조정 이상없음 / 고객댁 틸트기능 사용 못한다며 무조건 환불 요구 &lt; 정상으로 환불 어려움 안내함 - 고객 미수긍하며 소비자 보호원 신고하신다함 - 고객 매장에서 구매 당시 틸트 어려울 수 있다는 점 사전 고지하지 않…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">443,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="J. 틸팅 / 기능 불만" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#003EFF">J. 틸팅 / 기능 불만</span>
+          <div class="row-num">P202604190003</div>
+          <div class="row-customer">박재용</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 기능 정상</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/28 [04/23 CS최봉용(S)팀 추가건] 2023-02-01 AZ03김재엽 TNE500HLDA 452M ALL NEW T500HLDA(2023년형) 블랙쉘, 452M, 아이보리 1EA 02 - 시공팀 : 높이 조절 레버가 올린 후 복귀가 되지 않음 확인됨 &gt; 틸트 및 중심봉 지참하여 재방문 예정 안내 01- 의자가 자동으로 내려오고, 살짝만 움직여도 삐걱거리며 기울어지고 소리남 &gt; 중심봉 지참 후 방문 안내, 삐걱거리고 기울어지며 소리…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">52,780<span>원</span></div>
+          <div class="row-count">4건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="J. 틸팅 / 기능 불만" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#003EFF">J. 틸팅 / 기능 불만</span>
+          <div class="row-num">P202604280066</div>
+          <div class="row-customer">김민정</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/락킹 레버 중간 위치 놓고 사용 회수품 확인시 락커 댐퍼 0.35로 양호</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/11 고객요청일자★11시 이후 방문요청★ [시디즈닷컴 접수] 2026-01-19 T61HLDAM0KK 5G1BWW T60 HLDA M (화이트프레임/패브릭/라이트그레이) 1 좌측 하단의 등판 각도 조절(스텝락) 레버를 조작해도 등받이가 고정되지 않고 뒤로 밀림 &gt; 이전 조치품 동일하게 지참하여 방문 및 확인. 문제 부품 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">49,400<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="K. 기타 / 강성 교체요구" data-prod="T60">
+        <div class="row-left">
+          <span class="tag" style="background:#56585A">K. 기타 / 강성 교체요구</span>
+          <div class="row-num">P202604200088</div>
+          <div class="row-customer">박현진</div>
+          <div class="row-prod">T60</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/강성 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 4/27 ★맞교체부탁드립니다★SA03최성국T 4/21 방문추가건 &gt;&gt; 2026-04-18 SA03최성국 T61HLDAM0KK 5G1BWW T60 HLDA M (화이트프레임/패브릭/라이트그레이) 1 02-검수 시 악취는 확인이 잘 안됨, 제품 특유의 냄새가 있을 수 있다고 안내함. 고객은 현재 냄새로 인해 사용이 어려운 상태이며, 사용 중단 후 두드러기 증상은 호전되었으나 앉으면 다시 발생될 우려 주장. 기존 사용 중인 T50 제품에서는 동일 증…</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">295,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="K. 기타 / 강성 교체요구" data-prod="아이블">
+        <div class="row-left">
+          <span class="tag" style="background:#56585A">K. 기타 / 강성 교체요구</span>
+          <div class="row-num">P202604030038</div>
+          <div class="row-customer">권민지</div>
+          <div class="row-prod">아이블</div>
+          <div class="row-part">부위: 제품</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 정상 작동 고객 강성 교체/</div>
+          <div class="row-req"><strong>고객 요구:</strong> 04/15 [★제품 교체건] DE03이동민 04/09 방문추가건 &gt;&gt; 2026-03-09 DE01이찬희 S60SFU0KK 452NWW 아이블 높이조절형 바퀴 (화이트프레임│샌드베이지) 1EA 02 시공팀: 자동적으로 작동 없이 중심봉 올라가는 점 확인 되어 고객 안내 필요 &gt; 부품 교체+상품권 거부 하여, 제품 교체 진행 안내 01 높낮이 고정 불가 &gt; 중심봉 교체 및 점검 안내 드렸으나, 부품 교체 완강히 거부 하여 현장 확인 후 제품 교체 …</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">137,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="K. 기타 / 강성 교체요구" data-prod="T55">
+        <div class="row-left">
+          <span class="tag" style="background:#56585A">K. 기타 / 강성 교체요구</span>
+          <div class="row-num">P202604270059</div>
+          <div class="row-customer">박정우</div>
+          <div class="row-prod">T55</div>
+          <div class="row-part">부위: 틸트</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 정상 작동 확인 고객 영상x</div>
+          <div class="row-req"><strong>고객 요구:</strong> 변경날짜 : 2026-05-07 연기사유 : 조치품연기 비고 : 시간 약숙후 방문했으나 고객급히 외출함 11일 방문정검으로 일정 잡아주세요 자재고객 보관중 변경날짜 : 2026-05-06 연기사유 : 고객연기 비고 : 조치품 박상순팀 보관중 04/30 L/N 2022.04.22 TN550HLDA 576 T55(더블라셀/블랙) 1EA 04/18 의자를 높여도 계속 내려감 문제로 중심봉 조치 받았으나 동일 증상 발생 시공팀한테 레버가 문제면 증상 …</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">52,100<span>원</span></div>
+          <div class="row-count">2건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="K. 기타 / 강성 교체요구" data-prod="리니에">
+        <div class="row-left">
+          <span class="tag" style="background:#56585A">K. 기타 / 강성 교체요구</span>
+          <div class="row-num">P202604150040</div>
+          <div class="row-customer">이재홍</div>
+          <div class="row-prod">리니에</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/강성 불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/2 고객요청날짜★ [TD03김용겸 4/18 추가건] 2026-04-15 TD03김용겸 TXNA250F 457L 리니에_메쉬(화이트프레임/애쉬그린) 1 02_점검 시 제품 이상 없음 확인했으나, 우측 기울임 증상 주장하시어 등판 교체 진행 안내 &gt;등판 지참 후 재방문 안내 01_육안으로는 확인되지 않으나 착석 시 우측으로 기울임 증상 있어 문의 &gt;방문점검 후 이상 확인 시 필요 부품 지참 후 재방문 조치 안내. &gt;점검 후 추가 접수 시 필요 …</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">45,200<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="K. 기타 / 강성 교체요구" data-prod="탭플러스">
+        <div class="row-left">
+          <span class="tag" style="background:#56585A">K. 기타 / 강성 교체요구</span>
+          <div class="row-num">P202604270042</div>
+          <div class="row-customer">이재선</div>
+          <div class="row-prod">탭플러스</div>
+          <div class="row-part">부위: 등판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/고객 강성불만</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/9 02+03카드 병행 必★고객 요청 시 등판 조립 부탁드립니다.★ VVVIP [고객 추가건] ★서비스 불만 상급자 통화 건 VIP★ TNB200HF 451A TAB PLUS- 화이트쉘,헤드,T707틸트,각베이스,고정형팔걸이 1 02-좌판 수령으로 인한 소요 시간, 상담사간 안내 내용 상이등 클레임 발생으로 등판과 팔걸이 무상 교체 요구 팔걸이 온라인 구매 안내, 등판 일회성 무상 교체 안내 01-좌판 교체 문의 &lt;택배 발송</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">24,800<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="K. 기타 / 강성 교체요구" data-prod="T50">
+        <div class="row-left">
+          <span class="tag" style="background:#56585A">K. 기타 / 강성 교체요구</span>
+          <div class="row-num">P202604150016</div>
+          <div class="row-customer">김형섭</div>
+          <div class="row-prod">T50</div>
+          <div class="row-part">부위: 좌판</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/강성 불만 , 양산품 동일</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/2 L/N 2025 년 05 월 10 일 VPCOTNB50LA2 451A [코스트코]T50LIGHT 리뉴얼-WW쉘, 등판4C1B, 좌판451A, 럼버 02. 현장 &gt; 좌판 꺼짐 차이 없음 고객 미수긍 좌판 접수 요청 &gt; 조치품 지참하여 방문 교체 안내 01좌판 가운데 부분이 꺼짐이 있음으로 문의 &gt; 방문점검 문제시 조치품 지참하여 재방문 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">15,800<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+      <div class="row-card" data-type="K. 기타 / 강성 교체요구" data-prod="T50 AIR">
+        <div class="row-left">
+          <span class="tag" style="background:#56585A">K. 기타 / 강성 교체요구</span>
+          <div class="row-num">P202604270081</div>
+          <div class="row-customer">석주엽</div>
+          <div class="row-prod">T50 AIR</div>
+          <div class="row-part">부위: 중심봉</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><strong>하자 내용:</strong> 고객/회수품 확인시 내부샘 및 외부샘 없음</div>
+          <div class="row-req"><strong>고객 요구:</strong> 5/8 고객요청일자★ [시디즈닷컴 접수] 2022-09-19 TXN520HLDA 2D1 T50AIR시리즈 화이트쉘,등/좌 신규메쉬(원톤).grey 1 시간이 지나면 의자 높이가 자동으로 최대치로 올라가있음 &gt; 아주 미세하게 위로 올라가 영상 확인 불가. 4~5시간 후 최상단으로 위치함/ 정확한 확인어려우나 정품기간내 1회성 무상 중심봉 교체 안내</div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">4,000<span>원</span></div>
+          <div class="row-count">1건 묶음</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let activeType = null;
+let activeProd = null;
+
+function resetAll() {
+  activeType = null;
+  activeProd = null;
+  document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.prod-row').forEach(c => c.classList.remove('active'));
+  document.getElementById('filterLabel').innerHTML = '';
+  document.getElementById('searchBox').value = '';
+  applyFilter();
+}
+
+function filterType(type) {
+  activeType = (activeType === type) ? null : type;
+  activeProd = null;
+  document.querySelectorAll('.type-card').forEach(c => c.classList.toggle('active', c.dataset.type === activeType));
+  document.querySelectorAll('.prod-row').forEach(c => c.classList.remove('active'));
+  updateLabel();
+  applyFilter();
+}
+
+function filterProd(prod) {
+  activeProd = (activeProd === prod) ? null : prod;
+  activeType = null;
+  document.querySelectorAll('.prod-row').forEach(c => c.classList.toggle('active', c.dataset.prod === activeProd));
+  document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
+  updateLabel();
+  applyFilter();
+}
+
+function updateLabel() {
+  const label = document.getElementById('filterLabel');
+  if (activeType) {
+    const col = getComputedStyle(document.querySelector('.type-card.active')).getPropertyValue('--accent').trim();
+    label.innerHTML = `<span class="filter-badge" style="background:${col};color:#fff">${activeType}</span>`;
+  } else if (activeProd) {
+    label.innerHTML = `<span class="filter-badge" style="background:#003EFF;color:#fff">제품: ${activeProd}</span>`;
+  } else {
+    label.innerHTML = '';
+  }
+}
+
+function applyFilter() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const cards = document.querySelectorAll('.row-card');
+  let vis = 0;
+  cards.forEach(c => {
+    const typeMatch = !activeType || c.dataset.type === activeType;
+    const prodMatch = !activeProd || c.dataset.prod.split('|').includes(activeProd);
+    const textMatch = !q || c.innerText.toLowerCase().includes(q);
+    const show = typeMatch && prodMatch && textMatch;
+    c.classList.toggle('hidden', !show);
+    if (show) vis++;
+  });
+  document.getElementById('countLabel').textContent = vis + '건';
+}
+</script>
+</body>
+</html>
