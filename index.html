@@ -276,6 +276,14 @@ a{color:inherit;text-decoration:none}
 .bd-bar-wrap{flex:1;background:var(--gray-200);border-radius:var(--radius-sm);height:6px}
 .bd-bar{height:6px;border-radius:var(--radius-sm);opacity:0.85;transition:width var(--dur-base) var(--ease-standard)}
 .bd-cnt{font-size:11px;color:var(--text-tertiary);width:28px;text-align:right;font-family:var(--font-kr)}
+.bd-name-type{
+  width:72px;font-size:11px;text-align:right;
+  color:var(--text-secondary);flex-shrink:0;
+  font-weight:var(--fw-book);font-family:var(--font-kr);
+  letter-spacing:var(--tracking-kr);text-transform:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  cursor:default;
+}
 
 /* ROW CARDS */
 .row-card{
@@ -1749,29 +1757,54 @@ function updateLabel() {
   }
 }
 
+const TYPE_COLORS = {"A. 냄새 / 유해성": "#6E5FC6", "B. 파손 / 찍힘": "#C65878", "C. 조립·시공 불량": "#C68A3D", "D. 외관 / 오염 / 표면": "#2E9B8A", "E. 수평 / 기울어짐": "#8A93A1", "F. 중심봉 가스압 / 높낮이": "#3D6FE0", "G. 유격 / 흔들림 / 소음": "#2E86C6", "H. 착좌감 / 쿠션 / 강도": "#4FA567", "I. 사양변경 / 오구매": "#ABAEB1", "J. 틸팅 / 기능 불만": "#003EFF", "K. 기타 / 강성 교체요구": "#56585A"};
+
 function renderBreakdown() {
   const bd = document.getElementById('typeBreakdown');
-  if (!activeType) { bd.innerHTML = ''; return; }
-  const activeCard = document.querySelector('.type-card.active');
-  const col = activeCard ? getComputedStyle(activeCard).getPropertyValue('--accent').trim() : '#003EFF';
-  const cnt = {};
-  document.querySelectorAll('.row-card').forEach(c => {
-    if (c.dataset.type !== activeType) return;
-    c.dataset.prod.split('|').forEach(p => { if (p) cnt[p] = (cnt[p] || 0) + 1; });
-  });
-  const sorted = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
-  const max = sorted[0]?.[1] || 1;
-  let html = `<div class="breakdown"><div class="bd-label">제품별 분포</div>`;
-  sorted.forEach(([prod, n]) => {
-    const w = Math.round(n / max * 100);
-    html += `<div class="bd-row">
-      <span class="bd-name">${prod}</span>
-      <div class="bd-bar-wrap"><div class="bd-bar" style="width:${w}%;background:${col}"></div></div>
-      <span class="bd-cnt">${n}건</span>
-    </div>`;
-  });
-  html += '</div>';
-  bd.innerHTML = html;
+  if (!activeType && !activeProd) { bd.innerHTML = ''; return; }
+
+  if (activeType) {
+    const activeCard = document.querySelector('.type-card.active');
+    const col = activeCard ? getComputedStyle(activeCard).getPropertyValue('--accent').trim() : '#003EFF';
+    const cnt = {};
+    document.querySelectorAll('.row-card').forEach(c => {
+      if (c.dataset.type !== activeType) return;
+      c.dataset.prod.split('|').forEach(p => { if (p) cnt[p] = (cnt[p] || 0) + 1; });
+    });
+    const sorted = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
+    const max = sorted[0]?.[1] || 1;
+    let html = `<div class="breakdown"><div class="bd-label">제품별 분포</div>`;
+    sorted.forEach(([prod, n]) => {
+      const w = Math.round(n / max * 100);
+      html += `<div class="bd-row">
+        <span class="bd-name">${prod}</span>
+        <div class="bd-bar-wrap"><div class="bd-bar" style="width:${w}%;background:${col}"></div></div>
+        <span class="bd-cnt">${n}건</span>
+      </div>`;
+    });
+    html += '</div>';
+    bd.innerHTML = html;
+  } else if (activeProd) {
+    const cnt = {};
+    document.querySelectorAll('.row-card').forEach(c => {
+      if (!c.dataset.prod.split('|').includes(activeProd)) return;
+      cnt[c.dataset.type] = (cnt[c.dataset.type] || 0) + 1;
+    });
+    const sorted = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
+    const max = sorted[0]?.[1] || 1;
+    let html = `<div class="breakdown"><div class="bd-label">하자 유형별 분포</div>`;
+    sorted.forEach(([type, n]) => {
+      const col = TYPE_COLORS[type] || '#ABAEB1';
+      const w = Math.round(n / max * 100);
+      html += `<div class="bd-row">
+        <span class="bd-name bd-name-type" title="${type}">${type.split('.')[0]}.</span>
+        <div class="bd-bar-wrap"><div class="bd-bar" style="width:${w}%;background:${col}"></div></div>
+        <span class="bd-cnt">${n}건</span>
+      </div>`;
+    });
+    html += '</div>';
+    bd.innerHTML = html;
+  }
 }
 
 function applyFilter() {
