@@ -250,6 +250,33 @@ a{color:inherit;text-decoration:none}
 .search-wrap input:focus{border-color:var(--accent);box-shadow:var(--shadow-focus)}
 .search-wrap input::placeholder{color:var(--text-tertiary)}
 
+/* TYPE BREAKDOWN */
+#typeBreakdown{margin-bottom:var(--space-4)}
+.breakdown{
+  background:var(--surface);
+  border:var(--border-card);
+  border-radius:var(--radius-md);
+  padding:var(--space-3) var(--space-4);
+}
+.bd-label{
+  font-size:var(--fs-xs);text-transform:uppercase;
+  letter-spacing:var(--tracking-wide);color:var(--text-tertiary);
+  font-weight:var(--fw-book);font-family:var(--font-display);
+  margin-bottom:var(--space-2);
+}
+.bd-row{display:flex;align-items:center;gap:var(--space-2);margin-bottom:5px}
+.bd-row:last-child{margin-bottom:0}
+.bd-name{
+  font-size:11px;width:72px;text-align:right;
+  color:var(--text-secondary);flex-shrink:0;
+  font-weight:var(--fw-light);
+  letter-spacing:var(--tracking-wide);
+  font-family:var(--font-display);text-transform:uppercase;
+}
+.bd-bar-wrap{flex:1;background:var(--gray-200);border-radius:var(--radius-sm);height:6px}
+.bd-bar{height:6px;border-radius:var(--radius-sm);opacity:0.85;transition:width var(--dur-base) var(--ease-standard)}
+.bd-cnt{font-size:11px;color:var(--text-tertiary);width:28px;text-align:right;font-family:var(--font-kr)}
+
 /* ROW CARDS */
 .row-card{
   background:var(--surface);border-radius:var(--radius-lg);
@@ -461,6 +488,7 @@ a{color:inherit;text-decoration:none}
     <div class="search-wrap">
       <input type="text" id="searchBox" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="applyFilter()">
     </div>
+    <div id="typeBreakdown"></div>
     <div id="cardList">
       
       <div class="row-card" data-type="A. 냄새 / 유해성" data-prod="T80">
@@ -1686,6 +1714,7 @@ function resetAll() {
   document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.prod-row').forEach(c => c.classList.remove('active'));
   document.getElementById('filterLabel').innerHTML = '';
+  document.getElementById('typeBreakdown').innerHTML = '';
   document.getElementById('searchBox').value = '';
   applyFilter();
 }
@@ -1720,6 +1749,31 @@ function updateLabel() {
   }
 }
 
+function renderBreakdown() {
+  const bd = document.getElementById('typeBreakdown');
+  if (!activeType) { bd.innerHTML = ''; return; }
+  const activeCard = document.querySelector('.type-card.active');
+  const col = activeCard ? getComputedStyle(activeCard).getPropertyValue('--accent').trim() : '#003EFF';
+  const cnt = {};
+  document.querySelectorAll('.row-card').forEach(c => {
+    if (c.dataset.type !== activeType) return;
+    c.dataset.prod.split('|').forEach(p => { if (p) cnt[p] = (cnt[p] || 0) + 1; });
+  });
+  const sorted = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
+  const max = sorted[0]?.[1] || 1;
+  let html = `<div class="breakdown"><div class="bd-label">제품별 분포</div>`;
+  sorted.forEach(([prod, n]) => {
+    const w = Math.round(n / max * 100);
+    html += `<div class="bd-row">
+      <span class="bd-name">${prod}</span>
+      <div class="bd-bar-wrap"><div class="bd-bar" style="width:${w}%;background:${col}"></div></div>
+      <span class="bd-cnt">${n}건</span>
+    </div>`;
+  });
+  html += '</div>';
+  bd.innerHTML = html;
+}
+
 function applyFilter() {
   const q = document.getElementById('searchBox').value.toLowerCase();
   const cards = document.querySelectorAll('.row-card');
@@ -1733,6 +1787,7 @@ function applyFilter() {
     if (show) vis++;
   });
   document.getElementById('countLabel').textContent = vis + '건';
+  renderBreakdown();
 }
 </script>
 </body>
