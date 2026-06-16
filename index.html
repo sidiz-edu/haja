@@ -277,12 +277,11 @@ a{color:inherit;text-decoration:none}
 .bd-bar{height:6px;border-radius:var(--radius-sm);opacity:0.85;transition:width var(--dur-base) var(--ease-standard)}
 .bd-cnt{font-size:11px;color:var(--text-tertiary);width:28px;text-align:right;font-family:var(--font-kr)}
 .bd-name-type{
-  width:72px;font-size:11px;text-align:right;
+  width:148px;font-size:11px;text-align:right;
   color:var(--text-secondary);flex-shrink:0;
   font-weight:var(--fw-book);font-family:var(--font-kr);
   letter-spacing:var(--tracking-kr);text-transform:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  cursor:default;
 }
 
 /* ROW CARDS */
@@ -1797,7 +1796,7 @@ function renderBreakdown() {
       const col = TYPE_COLORS[type] || '#ABAEB1';
       const w = Math.round(n / max * 100);
       html += `<div class="bd-row">
-        <span class="bd-name bd-name-type" title="${type}">${type.split('.')[0]}.</span>
+        <span class="bd-name bd-name-type">${type}</span>
         <div class="bd-bar-wrap"><div class="bd-bar" style="width:${w}%;background:${col}"></div></div>
         <span class="bd-cnt">${n}건</span>
       </div>`;
