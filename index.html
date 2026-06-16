@@ -1944,8 +1944,7 @@ function renderMemoList() {
   if (!_memos.length) { area.style.display = 'none'; return; }
   area.style.display = 'flex';
   area.innerHTML = _memos.map((m, i) => {
-    const preview = m.content.replace(/
-/g,' ').substring(0, 50) + (m.content.length > 50 ? '…' : '');
+    const preview = m.content.replace(/\n/g,' ').substring(0, 50) + (m.content.length > 50 ? '…' : '');
     return `<div class="memo-chip" onclick="openMemoModal(${i})">
       <span class="memo-chip-text">${_htmlEsc(preview)}</span>
       <span class="memo-chip-date">${_formatDate(m.updated_at)}</span>
