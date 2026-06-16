@@ -136,6 +136,18 @@ a{color:inherit;text-decoration:none}
   font-family:var(--font-display);height:14px;
   letter-spacing:var(--tracking-wide);
 }
+.memo-display{
+  padding:var(--space-3) var(--space-5);
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  font-family:var(--font-kr);font-size:var(--fs-xs);
+  color:var(--text-secondary);line-height:var(--lh-relaxed);
+  letter-spacing:var(--tracking-kr);font-weight:var(--fw-light);
+  white-space:pre-wrap;
+}
+.memo-display::before{
+  content:'📌 ';font-size:12px;
+}
 
 /* LAYOUT */
 .main{display:flex;gap:0;height:calc(100vh - 156px)}
@@ -407,16 +419,12 @@ a{color:inherit;text-decoration:none}
     <div class="kpi"><div class="v">11</div><div class="l">불만 유형</div></div>
     <div class="kpi"><div class="v">76,434</div><div class="l">건당 평균 (원)</div></div>
     <div class="kpi memo-card" onclick="document.getElementById('memo-content-1').focus()">
-      <div class="l">메모 1</div>
+      <div class="l">메모</div>
       <textarea class="memo-textarea" id="memo-content-1" placeholder="메모를 입력하세요..." oninput="scheduleSave(1)"></textarea>
       <div class="memo-status" id="memo-status-1"></div>
     </div>
-    <div class="kpi memo-card" onclick="document.getElementById('memo-content-2').focus()">
-      <div class="l">메모 2</div>
-      <textarea class="memo-textarea" id="memo-content-2" placeholder="메모를 입력하세요..." oninput="scheduleSave(2)"></textarea>
-      <div class="memo-status" id="memo-status-2"></div>
-    </div>
   </div>
+  <div id="memo-display" class="memo-display" style="display:none"></div>
 </div>
 
 <div class="main">
@@ -1841,13 +1849,26 @@ const _SB_URL = 'https://dvlrzbckneucpvlacdll.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bHJ6YmNrbmV1Y3B2bGFjZGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODE0OTUsImV4cCI6MjA5MDU1NzQ5NX0.ofzGfyjndiT-FAIcG9TCFtUSXsagTBYOnhsP91vx0sE';
 const _sb = window.supabase ? window.supabase.createClient(_SB_URL, _SB_KEY) : null;
 
+function updateMemoDisplay(content) {
+  const el = document.getElementById('memo-display');
+  if (!el) return;
+  if (content && content.trim()) {
+    el.textContent = content;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 async function loadMemos() {
   if (!_sb) return;
   const { data } = await _sb.from('haja_memos').select('*');
   if (data) data.forEach(m => {
-    const n = m.id.replace('memo_', '');
-    const el = document.getElementById(`memo-content-${n}`);
-    if (el) el.value = m.content;
+    if (m.id === 'memo_1') {
+      const el = document.getElementById('memo-content-1');
+      if (el) el.value = m.content;
+      updateMemoDisplay(m.content);
+    }
   });
 }
 
@@ -1864,6 +1885,7 @@ async function saveMemo(n) {
   if (!_sb) { if (st) st.textContent = 'DB 미연결'; return; }
   const content = document.getElementById(`memo-content-${n}`).value;
   const { error } = await _sb.from('haja_memos').upsert({ id: `memo_${n}`, content, updated_at: new Date().toISOString() });
+  if (n === 1) updateMemoDisplay(content);
   if (st) {
     st.textContent = error ? '오류' : '저장됨 ✓';
     setTimeout(() => { st.textContent = ''; }, 2000);
