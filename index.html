@@ -498,6 +498,25 @@ a{color:inherit;text-decoration:none}
 .qi-cs-stat{background:var(--surface);border-radius:6px;padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2)}
 .qi-cs-stat-num{font-size:1.1rem;font-weight:var(--fw-light);color:var(--text-primary);font-family:var(--font-display)}
 .qi-cs-stat-label{font-size:10px;color:var(--text-tertiary);font-family:var(--font-kr);margin-top:2px}
+.qi-cs-cases{margin-top:var(--space-2);display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+.qi-cs-case{background:#fff;border:1px solid var(--border);border-radius:6px;padding:6px 8px;cursor:pointer;transition:border-color .15s}
+.qi-cs-case:hover{border-color:var(--blue)}
+.qi-cs-case-meta{display:flex;gap:6px;align-items:center;margin-bottom:3px}
+.qi-cs-case-num{font-size:10px;color:var(--text-tertiary);font-family:var(--font-display)}
+.qi-cs-case-prod{font-size:10px;color:var(--blue);font-family:var(--font-display);font-weight:500}
+.qi-cs-case-content{font-size:11px;color:var(--text-secondary);font-family:var(--font-kr);font-weight:var(--fw-light);line-height:1.5}
+.qi-cs-case-action{font-size:10px;color:var(--text-tertiary);font-family:var(--font-kr);margin-top:2px;padding-top:2px;border-top:1px dashed var(--border)}
+/* case detail modal */
+.qi-case-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:970;align-items:center;justify-content:center}
+.qi-case-modal-backdrop.open{display:flex}
+.qi-case-modal{background:#fff;border-radius:12px;padding:24px;width:520px;max-width:92vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);font-family:var(--font-kr)}
+.qi-case-modal-meta{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.qi-case-modal-num{font-size:11px;color:var(--text-tertiary);font-family:var(--font-display)}
+.qi-case-modal-prod{font-size:12px;color:var(--blue);font-family:var(--font-display);font-weight:600}
+.qi-case-modal h4{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);font-family:var(--font-display);margin:12px 0 4px}
+.qi-case-modal p{font-size:var(--fs-xs);color:var(--text-primary);line-height:var(--lh-relaxed);font-weight:var(--fw-light)}
+.qi-case-modal-close{display:block;margin-top:16px;text-align:right}
+.qi-case-modal-close button{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--font-display)}
 .qi-footer{padding:var(--space-3) var(--space-4);background:var(--surface)}
 .qi-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:950;align-items:center;justify-content:center}
 .qi-modal-backdrop.open{display:flex}
@@ -1905,6 +1924,25 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- CS CASE DETAIL MODAL -->
+<div class="qi-case-modal-backdrop" id="qi-case-modal-backdrop" onclick="closeCaseModal()">
+  <div class="qi-case-modal" onclick="event.stopPropagation()">
+    <div class="qi-case-modal-meta">
+      <span class="qi-case-modal-num" id="qi-case-num"></span>
+      <span class="qi-case-modal-prod" id="qi-case-prod"></span>
+    </div>
+    <h4>접수내용</h4>
+    <p id="qi-case-content"></p>
+    <div id="qi-case-action-wrap">
+      <h4>점검 및 조치</h4>
+      <p id="qi-case-action"></p>
+    </div>
+    <div class="qi-case-modal-close">
+      <button onclick="closeCaseModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- QI ADD MODAL -->
 <div class="qi-modal-backdrop" id="qi-modal-backdrop" onclick="closeQiModal()">
   <div class="qi-modal" onclick="event.stopPropagation()">
@@ -2194,6 +2232,27 @@ function _getCsStat(type) {
   return {count, amount};
 }
 
+function _getCsDetails(type) {
+  if (!type) return [];
+  const result = [];
+  document.querySelectorAll('.row-card').forEach(c => {
+    if (c.dataset.type !== type) return;
+    const num = c.querySelector('.row-num')?.textContent.trim() || '';
+    const prod = c.querySelector('.row-prod')?.textContent.trim() || '';
+    const dlLabels = c.querySelectorAll('.dl');
+    const dlVals = c.querySelectorAll('.dl-val');
+    let 접수내용 = '', 점검조치 = '';
+    dlLabels.forEach((lbl, i) => {
+      const txt = lbl.textContent.trim();
+      const val = dlVals[i]?.textContent.trim() || '';
+      if (txt === '접수내용') 접수내용 = val;
+      if (txt === '점검 및 조치') 점검조치 = val;
+    });
+    result.push({num, prod, 접수내용, 점검조치});
+  });
+  return result;
+}
+
 async function loadQiIssues() {
   if (!_sb) return;
   const {data} = await _sb.from('haja_quality_issues').select('*').order('created_at', {ascending:false});
@@ -2210,6 +2269,7 @@ function renderQiCards() {
   existing.forEach(e => e.remove());
   _qiIssues.forEach(issue => {
     const stat = _getCsStat(issue.related_type);
+    const details = _getCsDetails(issue.related_type);
     const card = document.createElement('div');
     card.className='qi-card';
     card.dataset.id = issue.id;
@@ -2246,14 +2306,17 @@ function renderQiCards() {
         </div>
         <div class="qi-col">
           <div class="qi-col-label">컨택센터 현황</div>
-          <div class="qi-cs-stat">
-            <div class="qi-cs-stat-num">${stat.count}건</div>
-            <div class="qi-cs-stat-label">26년 5월 접수</div>
+          <div style="display:flex;gap:8px;margin-bottom:var(--space-2)">
+            <div class="qi-cs-stat" style="flex:1;margin-bottom:0">
+              <div class="qi-cs-stat-num">${stat.count}건</div>
+              <div class="qi-cs-stat-label">26년 5월 접수</div>
+            </div>
+            <div class="qi-cs-stat" style="flex:1;margin-bottom:0">
+              <div class="qi-cs-stat-num">${stat.amount.toLocaleString()}원</div>
+              <div class="qi-cs-stat-label">총 하자보수비</div>
+            </div>
           </div>
-          <div class="qi-cs-stat">
-            <div class="qi-cs-stat-num">${stat.amount.toLocaleString()}원</div>
-            <div class="qi-cs-stat-label">총 하자보수비</div>
-          </div>
+          <div class="qi-cs-cases" id="qi-cs-cases-${issue.id}"></div>
         </div>
       </div>
       <div class="qi-footer">
@@ -2261,6 +2324,27 @@ function renderQiCards() {
         <textarea class="qi-textarea" id="qi-cs-${issue.id}" placeholder="앞으로 어떻게 기록하는 게 좋을지 작성하세요..." style="min-height:48px">${_htmlEsc(issue.cs_guideline||'')}</textarea>
       </div>`;
     container.appendChild(card);
+    // 케이스 목록 채우기 (XSS 안전하게 DOM으로)
+    const casesEl = card.querySelector(`#qi-cs-cases-${issue.id}`);
+    if (casesEl) {
+      details.forEach((d, i) => {
+        const item = document.createElement('div');
+        item.className = 'qi-cs-case';
+        item.innerHTML = `
+          <div class="qi-cs-case-meta">
+            <span class="qi-cs-case-num"></span>
+            <span class="qi-cs-case-prod"></span>
+          </div>
+          <div class="qi-cs-case-content"></div>
+          ${d.점검조치 ? '<div class="qi-cs-case-action"></div>' : ''}`;
+        item.querySelector('.qi-cs-case-num').textContent = d.num;
+        item.querySelector('.qi-cs-case-prod').textContent = d.prod;
+        item.querySelector('.qi-cs-case-content').textContent = d.접수내용.substring(0,60) + (d.접수내용.length>60?'…':'');
+        if (d.점검조치) item.querySelector('.qi-cs-case-action').textContent = d.점검조치.substring(0,50) + (d.점검조치.length>50?'…':'');
+        item.addEventListener('click', () => openCaseModal(d));
+        casesEl.appendChild(item);
+      });
+    }
   });
 }
 
@@ -2289,6 +2373,18 @@ async function deleteQiIssue(id) {
   if (!_sb || !confirm('이 이슈를 삭제할까요?')) return;
   await _sb.from('haja_quality_issues').delete().eq('id', id);
   await loadQiIssues();
+}
+
+function openCaseModal(d) {
+  document.getElementById('qi-case-num').textContent = d.num;
+  document.getElementById('qi-case-prod').textContent = d.prod;
+  document.getElementById('qi-case-content').textContent = d.접수내용 || '—';
+  document.getElementById('qi-case-action').textContent = d.점검조치 || '';
+  document.getElementById('qi-case-action-wrap').style.display = d.점검조치 ? 'block' : 'none';
+  document.getElementById('qi-case-modal-backdrop').classList.add('open');
+}
+function closeCaseModal() {
+  document.getElementById('qi-case-modal-backdrop').classList.remove('open');
 }
 
 function openQiModal() {
