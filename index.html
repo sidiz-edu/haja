@@ -1931,7 +1931,7 @@ a{color:inherit;text-decoration:none}
       <span class="qi-case-modal-num" id="qi-case-num"></span>
       <span class="qi-case-modal-prod" id="qi-case-prod"></span>
     </div>
-    <h4>접수내용</h4>
+    <h4>고객 요구</h4>
     <p id="qi-case-content"></p>
     <div id="qi-case-action-wrap">
       <h4>점검 및 조치</h4>
@@ -2239,16 +2239,20 @@ function _getCsDetails(type) {
     if (c.dataset.type !== type) return;
     const num = c.querySelector('.row-num')?.textContent.trim() || '';
     const prod = c.querySelector('.row-prod')?.textContent.trim() || '';
+    // 고객 요구 = .row-req에서 "고객 요구:" 텍스트 제거
+    const reqEl = c.querySelector('.row-req');
+    let 고객요구 = '';
+    if (reqEl) {
+      고객요구 = reqEl.textContent.replace(/^고객\s*요구\s*[:：]?\s*/,'').trim();
+    }
+    // 점검 및 조치
     const dlLabels = c.querySelectorAll('.dl');
     const dlVals = c.querySelectorAll('.dl-val');
-    let 접수내용 = '', 점검조치 = '';
+    let 점검조치 = '';
     dlLabels.forEach((lbl, i) => {
-      const txt = lbl.textContent.trim();
-      const val = dlVals[i]?.textContent.trim() || '';
-      if (txt === '접수내용') 접수내용 = val;
-      if (txt === '점검 및 조치') 점검조치 = val;
+      if (lbl.textContent.trim() === '점검 및 조치') 점검조치 = dlVals[i]?.textContent.trim() || '';
     });
-    result.push({num, prod, 접수내용, 점검조치});
+    result.push({num, prod, 고객요구, 점검조치});
   });
   return result;
 }
@@ -2339,7 +2343,7 @@ function renderQiCards() {
           ${d.점검조치 ? '<div class="qi-cs-case-action"></div>' : ''}`;
         item.querySelector('.qi-cs-case-num').textContent = d.num;
         item.querySelector('.qi-cs-case-prod').textContent = d.prod;
-        item.querySelector('.qi-cs-case-content').textContent = d.접수내용.substring(0,60) + (d.접수내용.length>60?'…':'');
+        item.querySelector('.qi-cs-case-content').textContent = d.고객요구.substring(0,60) + (d.고객요구.length>60?'…':'');
         if (d.점검조치) item.querySelector('.qi-cs-case-action').textContent = d.점검조치.substring(0,50) + (d.점검조치.length>50?'…':'');
         item.addEventListener('click', () => openCaseModal(d));
         casesEl.appendChild(item);
@@ -2378,7 +2382,7 @@ async function deleteQiIssue(id) {
 function openCaseModal(d) {
   document.getElementById('qi-case-num').textContent = d.num;
   document.getElementById('qi-case-prod').textContent = d.prod;
-  document.getElementById('qi-case-content').textContent = d.접수내용 || '—';
+  document.getElementById('qi-case-content').textContent = d.고객요구 || '—';
   document.getElementById('qi-case-action').textContent = d.점검조치 || '';
   document.getElementById('qi-case-action-wrap').style.display = d.점검조치 ? 'block' : 'none';
   document.getElementById('qi-case-modal-backdrop').classList.add('open');
