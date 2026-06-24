@@ -2328,7 +2328,7 @@ function renderQiCards() {
     card.dataset.id = issue.id;
     card.innerHTML = `
       <div class="qi-card-header">
-        <span class="qi-title">${_htmlEsc(issue.title)}</span>
+        <span class="qi-title" title="클릭하여 편집" style="cursor:pointer" onclick="startQiTitleEdit(this,'${issue.id}')">${_htmlEsc(issue.title)}</span>
         ${issue.related_type ? `<span class="qi-type-badge" style="background:${TYPE_COLORS[issue.related_type]||'#ABAEB1'}">${_htmlEsc(issue.related_type)}</span>` : ''}
         <button class="qi-save-btn" onclick="saveQiIssue('${issue.id}')">저장</button>
         <button class="qi-del-btn" onclick="deleteQiIssue('${issue.id}')">삭제</button>
@@ -2407,6 +2407,31 @@ async function saveQiIssue(id) {
     btn.textContent = error ? '오류' : '저장됨 ✓';
     setTimeout(() => { btn.textContent='저장'; }, 1500);
   }
+}
+
+function startQiTitleEdit(span, id) {
+  const cur = span.textContent;
+  const input = document.createElement('input');
+  input.value = cur;
+  input.style.cssText = 'font-size:16px;font-weight:700;font-family:inherit;border:none;outline:none;border-bottom:2px solid var(--blue);background:transparent;width:100%;min-width:200px;padding:0;color:var(--text-primary)';
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+  const done = async () => {
+    const val = input.value.trim() || cur;
+    const newSpan = document.createElement('span');
+    newSpan.className = 'qi-title';
+    newSpan.title = '클릭하여 편집';
+    newSpan.style.cursor = 'pointer';
+    newSpan.textContent = val;
+    newSpan.onclick = () => startQiTitleEdit(newSpan, id);
+    input.replaceWith(newSpan);
+    if (_sb && val !== cur) {
+      await _sb.from('haja_quality_issues').update({title: val, updated_at: new Date().toISOString()}).eq('id', id);
+    }
+  };
+  input.addEventListener('blur', done);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape'){input.value=cur;input.blur();} });
 }
 
 async function deleteQiIssue(id) {
