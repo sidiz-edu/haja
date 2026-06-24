@@ -479,7 +479,7 @@ a{color:inherit;text-decoration:none}
 .qi-card{background:#fff;border:var(--border-card);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
 .qi-card-header{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border);background:var(--surface)}
 .qi-title{flex:1;font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-primary);font-family:var(--font-kr)}
-.qi-type-badge{font-size:10px;padding:2px 8px;border-radius:12px;font-family:var(--font-display);letter-spacing:var(--tracking-wide);background:var(--gray-100);color:var(--text-secondary)}
+.qi-type-badge{font-size:12px;padding:3px 12px;border-radius:12px;font-family:var(--font-kr);font-weight:var(--fw-book);color:#fff;letter-spacing:var(--tracking-kr)}
 .qi-save-btn{font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer;font-family:var(--font-display);transition:opacity .15s}
 .qi-save-btn:hover{opacity:.8}
 .qi-del-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-tertiary);cursor:pointer;transition:all .15s}
@@ -2276,7 +2276,7 @@ function renderQiCards() {
     card.innerHTML = `
       <div class="qi-card-header">
         <span class="qi-title">${_htmlEsc(issue.title)}</span>
-        ${issue.related_type ? `<span class="qi-type-badge">${_htmlEsc(issue.related_type)}</span>` : ''}
+        ${issue.related_type ? `<span class="qi-type-badge" style="background:${TYPE_COLORS[issue.related_type]||'#ABAEB1'}">${_htmlEsc(issue.related_type)}</span>` : ''}
         <button class="qi-save-btn" onclick="saveQiIssue('${issue.id}')">저장</button>
         <button class="qi-del-btn" onclick="deleteQiIssue('${issue.id}')">삭제</button>
       </div>
