@@ -1985,27 +1985,9 @@ a{color:inherit;text-decoration:none}
       <h2 class="qi-title">조치내역 작성 방법</h2>
       <span class="qi-sub">각 팀별 조치내역 작성 가이드를 기록하세요. 변경사항은 자동 저장됩니다.</span>
     </div>
-    <div class="guide-sections">
-      <div class="guide-section">
-        <div class="guide-section-title">컨택센터</div>
-        <textarea class="guide-textarea" id="guide-contactcenter" placeholder="컨택센터에서 조치내역을 작성하는 방법을 기록하세요..." oninput="scheduleGuideSave('contactcenter')"></textarea>
-        <span class="guide-save-status" id="guide-status-contactcenter"></span>
-      </div>
-      <div class="guide-section">
-        <div class="guide-section-title">AS 엔지니어팀</div>
-        <textarea class="guide-textarea" id="guide-asteam" placeholder="AS 엔지니어팀에서 조치내역을 작성하는 방법을 기록하세요..." oninput="scheduleGuideSave('asteam')"></textarea>
-        <span class="guide-save-status" id="guide-status-asteam"></span>
-      </div>
-      <div class="guide-section">
-        <div class="guide-section-title">품질관리팀</div>
-        <textarea class="guide-textarea" id="guide-qcteam" placeholder="품질관리팀에서 조치내역을 작성하는 방법을 기록하세요..." oninput="scheduleGuideSave('qcteam')"></textarea>
-        <span class="guide-save-status" id="guide-status-qcteam"></span>
-      </div>
-      <div class="guide-section">
-        <div class="guide-section-title">공통 주의사항</div>
-        <textarea class="guide-textarea" id="guide-general" placeholder="공통적으로 지켜야 할 작성 기준이나 주의사항을 기록하세요..." oninput="scheduleGuideSave('general')"></textarea>
-        <span class="guide-save-status" id="guide-status-general"></span>
-      </div>
+    <div style="padding:var(--space-4)">
+      <textarea class="guide-textarea" id="guide-main" placeholder="조치내역 작성 방법을 기록하세요..." oninput="scheduleGuideSave('main')" style="width:100%;min-height:400px;resize:vertical"></textarea>
+      <span class="guide-save-status" id="guide-status-main"></span>
     </div>
   </div>
 </div>
@@ -2253,20 +2235,13 @@ function switchTab(tab) {
   if (tab==='guide') loadGuide();
 }
 
-/* ── GUIDE SECTIONS ── */
-const _GUIDE_KEYS = ['contactcenter','asteam','qcteam','general'];
+/* ── GUIDE ── */
 const _guideTimers = {};
 
 async function loadGuide() {
   if (!_sb) return;
-  const ids = _GUIDE_KEYS.map(k => 'guide_'+k);
-  const {data} = await _sb.from('haja_memos').select('id,content').in('id', ids);
-  if (!data) return;
-  data.forEach(row => {
-    const key = row.id.replace('guide_','');
-    const el = document.getElementById('guide-'+key);
-    if (el) el.value = row.content || '';
-  });
+  const {data} = await _sb.from('haja_memos').select('content').eq('id','guide_main').single();
+  if (data) document.getElementById('guide-main').value = data.content || '';
 }
 
 function scheduleGuideSave(key) {
