@@ -82,6 +82,14 @@ a{color:inherit;text-decoration:none}
   color:var(--text-primary);
   font-family:var(--font-kr);
 }
+.header h1:hover{opacity:.7}
+#title-input{
+  font-size:var(--fs-h4);font-weight:var(--fw-book);
+  letter-spacing:var(--tracking-kr);color:var(--text-primary);
+  font-family:var(--font-kr);border:none;outline:none;
+  border-bottom:2px solid var(--blue);background:transparent;
+  padding:0;width:100%;min-width:300px;
+}
 .header .sub{
   font-size:var(--fs-xs);
   color:var(--text-tertiary);
@@ -514,7 +522,7 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="mark-div"></div>
     <div class="header-titles">
-      <h1>하자보수비 분석 대시보드</h1>
+      <h1 id="dashboard-title" title="클릭하여 편집" onclick="startTitleEdit()" style="cursor:pointer">하자보수비 분석 대시보드</h1>
       <div class="sub">26년 5월 &middot; 옴니채널운영팀 &middot; 시디즈 &middot; 원본 123행 → 접수번호 기준 묶음</div>
     </div>
   </div>
@@ -2123,6 +2131,40 @@ async function deleteMemoFromModal() {
 }
 
 loadMemos();
+loadTitle();
+
+/* ── TITLE EDIT ── */
+async function loadTitle() {
+  if (!_sb) return;
+  const {data} = await _sb.from('haja_memos').select('content').eq('id','dashboard_title').single();
+  if (data && data.content) document.getElementById('dashboard-title').textContent = data.content;
+}
+
+function startTitleEdit() {
+  const h1 = document.getElementById('dashboard-title');
+  const cur = h1.textContent;
+  const input = document.createElement('input');
+  input.id = 'title-input';
+  input.value = cur;
+  h1.replaceWith(input);
+  input.focus();
+  input.select();
+  const done = async () => {
+    const val = input.value.trim() || cur;
+    const newH1 = document.createElement('h1');
+    newH1.id = 'dashboard-title';
+    newH1.title = '클릭하여 편집';
+    newH1.style.cursor = 'pointer';
+    newH1.textContent = val;
+    newH1.onclick = startTitleEdit;
+    input.replaceWith(newH1);
+    if (_sb && val !== cur) {
+      await _sb.from('haja_memos').upsert({id:'dashboard_title', content:val, updated_at:new Date().toISOString()});
+    }
+  };
+  input.addEventListener('blur', done);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape') { input.value=cur; input.blur(); } });
+}
 
 /* ── TAB SWITCHING ── */
 function switchTab(tab) {
