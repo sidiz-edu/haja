@@ -2371,7 +2371,7 @@ function renderQiCards() {
           <textarea class="qi-textarea" id="qi-as-${issue.id}" placeholder="검수 방법을 기록하세요...">${_htmlEsc(issue.as_inspection_note||'')}</textarea>
         </div>
         <div class="qi-col">
-          <div class="qi-col-label">품질관리팀 검수</div>
+          <div class="qi-col-label">품질관리팀 검수 방법</div>
           <div class="qi-sub-label">판정기준</div>
           <div class="qi-radio-group">
             <label class="qi-radio-label"><input type="radio" name="qc-std-${issue.id}" value="true" ${issue.qc_has_standard===true?'checked':''}> 있음</label>
