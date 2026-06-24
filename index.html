@@ -450,6 +450,59 @@ a{color:inherit;text-decoration:none}
   .row-card{flex-direction:column}
   .row-right{text-align:left}
 }
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);background:var(--bg);padding:0 var(--space-5)}
+.tab-btn{padding:10px 20px;font-size:var(--fs-xs);font-family:var(--font-kr);font-weight:var(--fw-book);color:var(--text-tertiary);letter-spacing:var(--tracking-kr);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:var(--fw-medium)}
+.tab-btn:hover:not(.active){color:var(--text-secondary)}
+.panel{display:none}
+.panel.active{display:block}
+#panel-analysis.active{display:flex;flex-direction:column}
+
+/* ── QUALITY PANEL ── */
+.qi-panel{padding:var(--space-5);background:var(--bg);min-height:calc(100vh - 180px)}
+.qi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4)}
+.qi-top h2{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-primary);font-family:var(--font-kr)}
+.qi-add-btn{padding:8px 18px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:var(--fs-xs);font-family:var(--font-kr);cursor:pointer;transition:opacity .15s}
+.qi-add-btn:hover{opacity:.85}
+.qi-cards{display:flex;flex-direction:column;gap:var(--space-4)}
+.qi-empty{text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-kr);font-size:var(--fs-sm)}
+.qi-card{background:#fff;border:var(--border-card);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+.qi-card-header{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border);background:var(--surface)}
+.qi-title{flex:1;font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-primary);font-family:var(--font-kr)}
+.qi-type-badge{font-size:10px;padding:2px 8px;border-radius:12px;font-family:var(--font-display);letter-spacing:var(--tracking-wide);background:var(--gray-100);color:var(--text-secondary)}
+.qi-save-btn{font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer;font-family:var(--font-display);transition:opacity .15s}
+.qi-save-btn:hover{opacity:.8}
+.qi-del-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-tertiary);cursor:pointer;transition:all .15s}
+.qi-del-btn:hover{border-color:#c00;color:#c00}
+.qi-grid{display:grid;grid-template-columns:1fr 1.6fr 1fr 1fr;border-bottom:1px solid var(--border)}
+.qi-col{padding:var(--space-3) var(--space-4);border-right:1px solid var(--border)}
+.qi-col:last-child{border-right:none}
+.qi-col-label{font-size:10px;font-weight:var(--fw-medium);color:var(--text-tertiary);letter-spacing:var(--tracking-wide);font-family:var(--font-display);text-transform:uppercase;margin-bottom:var(--space-2)}
+.qi-textarea{width:100%;border:none;outline:none;resize:none;font-family:var(--font-kr);font-size:var(--fs-xs);color:var(--text-primary);background:transparent;line-height:var(--lh-relaxed);min-height:80px;letter-spacing:var(--tracking-kr);font-weight:var(--fw-light)}
+.qi-textarea::placeholder{color:var(--text-tertiary)}
+.qi-textarea:focus{background:#f8faff;border-radius:4px}
+.qi-radio-group{display:flex;align-items:center;gap:8px;margin-bottom:var(--space-2);flex-wrap:wrap}
+.qi-radio-label{font-size:11px;color:var(--text-secondary);font-family:var(--font-kr);cursor:pointer;display:flex;align-items:center;gap:4px}
+.qi-radio-label input{accent-color:var(--blue)}
+.qi-sub-label{font-size:10px;color:var(--text-tertiary);font-family:var(--font-kr);margin-bottom:4px}
+.qi-cs-stat{background:var(--surface);border-radius:6px;padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2)}
+.qi-cs-stat-num{font-size:1.1rem;font-weight:var(--fw-light);color:var(--text-primary);font-family:var(--font-display)}
+.qi-cs-stat-label{font-size:10px;color:var(--text-tertiary);font-family:var(--font-kr);margin-top:2px}
+.qi-footer{padding:var(--space-3) var(--space-4);background:var(--surface)}
+.qi-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:950;align-items:center;justify-content:center}
+.qi-modal-backdrop.open{display:flex}
+.qi-modal{background:#fff;border-radius:12px;padding:28px;width:420px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.18);font-family:var(--font-kr)}
+.qi-modal h3{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-primary);margin:0 0 16px}
+.qi-modal-label{font-size:11px;color:var(--text-tertiary);margin:12px 0 4px;display:block;font-family:var(--font-display);text-transform:uppercase;letter-spacing:var(--tracking-wide)}
+.qi-modal-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:var(--font-kr);font-size:var(--fs-xs);outline:none;box-sizing:border-box}
+.qi-modal-input:focus{border-color:var(--blue)}
+.qi-modal-select{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:var(--font-kr);font-size:var(--fs-xs);outline:none;background:#fff;box-sizing:border-box}
+.qi-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.qi-modal-btn{font-size:12px;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:var(--font-display);border:1px solid var(--border)}
+.qi-modal-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.qi-modal-btn.primary:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -484,6 +537,12 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 </div>
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('analysis')">분석</button>
+  <button class="tab-btn" onclick="switchTab('quality')">품질관리</button>
+</div>
+
 <!-- MEMO MODAL -->
 <div class="memo-modal-backdrop" id="memo-modal-backdrop" onclick="closeMemoModal()">
   <div class="memo-modal" onclick="event.stopPropagation()">
@@ -498,6 +557,7 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<div id="panel-analysis" class="panel active">
 <div class="main">
   <!-- SIDEBAR -->
   <div class="sidebar">
@@ -1819,6 +1879,48 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 </div>
+</div><!-- /panel-analysis -->
+
+<!-- QUALITY MANAGEMENT PANEL -->
+<div id="panel-quality" class="panel">
+  <div class="qi-panel">
+    <div class="qi-top">
+      <h2>품질관리</h2>
+      <button class="qi-add-btn" onclick="openQiModal()">+ 주요 이슈 추가</button>
+    </div>
+    <div class="qi-cards" id="qi-cards">
+      <div class="qi-empty" id="qi-empty">저장된 이슈가 없습니다.<br>주요 이슈를 추가해보세요.</div>
+    </div>
+  </div>
+</div>
+
+<!-- QI ADD MODAL -->
+<div class="qi-modal-backdrop" id="qi-modal-backdrop" onclick="closeQiModal()">
+  <div class="qi-modal" onclick="event.stopPropagation()">
+    <h3>주요 이슈 추가</h3>
+    <label class="qi-modal-label">이슈 제목</label>
+    <input class="qi-modal-input" id="qi-new-title" placeholder="예: 중심봉 가스압 관련" />
+    <label class="qi-modal-label">연관 하자 유형 (선택)</label>
+    <select class="qi-modal-select" id="qi-new-type">
+      <option value="">-- 선택 안 함 --</option>
+      <option value="A. 냄새 / 유해성">A. 냄새 / 유해성</option>
+      <option value="B. 파손 / 찍힘">B. 파손 / 찍힘</option>
+      <option value="C. 조립·시공 불량">C. 조립·시공 불량</option>
+      <option value="D. 외관 / 오염 / 표면">D. 외관 / 오염 / 표면</option>
+      <option value="E. 수평 / 기울어짐">E. 수평 / 기울어짐</option>
+      <option value="F. 중심봉 가스압 / 높낮이">F. 중심봉 가스압 / 높낮이</option>
+      <option value="G. 유격 / 흔들림 / 소음">G. 유격 / 흔들림 / 소음</option>
+      <option value="H. 착좌감 / 쿠션 / 강도">H. 착좌감 / 쿠션 / 강도</option>
+      <option value="I. 사양변경 / 오구매">I. 사양변경 / 오구매</option>
+      <option value="J. 틸팅 / 기능 불만">J. 틸팅 / 기능 불만</option>
+      <option value="K. 기타 / 강성 교체요구">K. 기타 / 강성 교체요구</option>
+    </select>
+    <div class="qi-modal-actions">
+      <button class="qi-modal-btn" onclick="closeQiModal()">취소</button>
+      <button class="qi-modal-btn primary" onclick="createQiIssue()">추가</button>
+    </div>
+  </div>
+</div>
 
 <script>
 let activeType = null;
@@ -2018,6 +2120,150 @@ async function deleteMemoFromModal() {
 }
 
 loadMemos();
+
+/* ── TAB SWITCHING ── */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='analysis'&&i===0)||(tab==='quality'&&i===1)));
+  document.getElementById('panel-analysis').classList.toggle('active', tab==='analysis');
+  document.getElementById('panel-quality').classList.toggle('active', tab==='quality');
+  if (tab==='quality') loadQiIssues();
+}
+
+/* ── QUALITY ISSUES (Supabase) ── */
+let _qiIssues = [];
+
+function _getCsStat(type) {
+  if (!type) return {count:0, amount:0};
+  const cards = document.querySelectorAll('.row-card');
+  let count=0, amount=0;
+  cards.forEach(c => {
+    if (c.dataset.type === type) {
+      count++;
+      const amtEl = c.querySelector('.row-amount');
+      if (amtEl) {
+        const n = parseInt(amtEl.textContent.replace(/[^0-9]/g,''));
+        if (!isNaN(n)) amount += n;
+      }
+    }
+  });
+  return {count, amount};
+}
+
+async function loadQiIssues() {
+  if (!_sb) return;
+  const {data} = await _sb.from('haja_quality_issues').select('*').order('created_at', {ascending:false});
+  _qiIssues = data || [];
+  renderQiCards();
+}
+
+function renderQiCards() {
+  const container = document.getElementById('qi-cards');
+  const empty = document.getElementById('qi-empty');
+  if (!_qiIssues.length) { empty.style.display='block'; return; }
+  empty.style.display='none';
+  const existing = container.querySelectorAll('.qi-card');
+  existing.forEach(e => e.remove());
+  _qiIssues.forEach(issue => {
+    const stat = _getCsStat(issue.related_type);
+    const card = document.createElement('div');
+    card.className='qi-card';
+    card.dataset.id = issue.id;
+    card.innerHTML = `
+      <div class="qi-card-header">
+        <span class="qi-title">${_htmlEsc(issue.title)}</span>
+        ${issue.related_type ? `<span class="qi-type-badge">${_htmlEsc(issue.related_type)}</span>` : ''}
+        <button class="qi-save-btn" onclick="saveQiIssue('${issue.id}')">저장</button>
+        <button class="qi-del-btn" onclick="deleteQiIssue('${issue.id}')">삭제</button>
+      </div>
+      <div class="qi-grid">
+        <div class="qi-col">
+          <div class="qi-col-label">CX 메모</div>
+          <textarea class="qi-textarea" id="qi-cx-${issue.id}" placeholder="주요 내용을 입력하세요...">${_htmlEsc(issue.cx_memo||'')}</textarea>
+        </div>
+        <div class="qi-col">
+          <div class="qi-col-label">품질관리팀</div>
+          <div class="qi-sub-label">판정기준</div>
+          <div class="qi-radio-group">
+            <label class="qi-radio-label"><input type="radio" name="qc-std-${issue.id}" value="true" ${issue.qc_has_standard===true?'checked':''}> 있음</label>
+            <label class="qi-radio-label"><input type="radio" name="qc-std-${issue.id}" value="false" ${issue.qc_has_standard===false?'checked':''}> 없음</label>
+          </div>
+          <div class="qi-sub-label">검수방식</div>
+          <div class="qi-radio-group">
+            <label class="qi-radio-label"><input type="radio" name="qc-ins-${issue.id}" value="full" ${issue.qc_inspection_type==='full'?'checked':''}> 전체제품</label>
+            <label class="qi-radio-label"><input type="radio" name="qc-ins-${issue.id}" value="parts" ${issue.qc_inspection_type==='parts'?'checked':''}> 부품만</label>
+            <label class="qi-radio-label"><input type="radio" name="qc-ins-${issue.id}" value="other" ${issue.qc_inspection_type==='other'?'checked':''}> 기타</label>
+          </div>
+          <textarea class="qi-textarea" id="qi-qc-${issue.id}" placeholder="판정 상세 내용..." style="min-height:48px">${_htmlEsc(issue.qc_standard_detail||'')}</textarea>
+        </div>
+        <div class="qi-col">
+          <div class="qi-col-label">AS 엔지니어팀</div>
+          <textarea class="qi-textarea" id="qi-as-${issue.id}" placeholder="검수 방법을 기록하세요...">${_htmlEsc(issue.as_inspection_note||'')}</textarea>
+        </div>
+        <div class="qi-col">
+          <div class="qi-col-label">컨택센터 현황</div>
+          <div class="qi-cs-stat">
+            <div class="qi-cs-stat-num">${stat.count}건</div>
+            <div class="qi-cs-stat-label">26년 5월 접수</div>
+          </div>
+          <div class="qi-cs-stat">
+            <div class="qi-cs-stat-num">${stat.amount.toLocaleString()}원</div>
+            <div class="qi-cs-stat-label">총 하자보수비</div>
+          </div>
+        </div>
+      </div>
+      <div class="qi-footer">
+        <div class="qi-col-label">컨택센터 권고사항 (품질관리팀 작성)</div>
+        <textarea class="qi-textarea" id="qi-cs-${issue.id}" placeholder="앞으로 어떻게 기록하는 게 좋을지 작성하세요..." style="min-height:48px">${_htmlEsc(issue.cs_guideline||'')}</textarea>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+async function saveQiIssue(id) {
+  if (!_sb) return;
+  const qcStdEl = document.querySelector(`input[name="qc-std-${id}"]:checked`);
+  const qcInsEl = document.querySelector(`input[name="qc-ins-${id}"]:checked`);
+  const updates = {
+    cx_memo: document.getElementById(`qi-cx-${id}`).value,
+    qc_has_standard: qcStdEl ? qcStdEl.value==='true' : null,
+    qc_inspection_type: qcInsEl ? qcInsEl.value : null,
+    qc_standard_detail: document.getElementById(`qi-qc-${id}`).value,
+    as_inspection_note: document.getElementById(`qi-as-${id}`).value,
+    cs_guideline: document.getElementById(`qi-cs-${id}`).value,
+    updated_at: new Date().toISOString()
+  };
+  const {error} = await _sb.from('haja_quality_issues').update(updates).eq('id', id);
+  const btn = document.querySelector(`.qi-card[data-id="${id}"] .qi-save-btn`);
+  if (btn) {
+    btn.textContent = error ? '오류' : '저장됨 ✓';
+    setTimeout(() => { btn.textContent='저장'; }, 1500);
+  }
+}
+
+async function deleteQiIssue(id) {
+  if (!_sb || !confirm('이 이슈를 삭제할까요?')) return;
+  await _sb.from('haja_quality_issues').delete().eq('id', id);
+  await loadQiIssues();
+}
+
+function openQiModal() {
+  document.getElementById('qi-new-title').value='';
+  document.getElementById('qi-new-type').value='';
+  document.getElementById('qi-modal-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('qi-new-title').focus(), 100);
+}
+function closeQiModal() {
+  document.getElementById('qi-modal-backdrop').classList.remove('open');
+}
+
+async function createQiIssue() {
+  const title = document.getElementById('qi-new-title').value.trim();
+  if (!title) { document.getElementById('qi-new-title').focus(); return; }
+  if (!_sb) return;
+  const related_type = document.getElementById('qi-new-type').value || null;
+  const {error} = await _sb.from('haja_quality_issues').insert({title, related_type});
+  if (!error) { closeQiModal(); await loadQiIssues(); }
+}
 
 function applyFilter() {
   const q = document.getElementById('searchBox').value.toLowerCase();
