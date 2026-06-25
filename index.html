@@ -2333,15 +2333,10 @@ function renderQiCards() {
       <div class="qi-grid">
         <div class="qi-col">
           <div class="qi-col-label">AS카드</div>
-          <div style="display:flex;gap:8px;margin-bottom:var(--space-2)">
-            <div class="qi-cs-stat" style="flex:1;margin-bottom:0">
-              <div class="qi-cs-stat-num">${stat.count}건</div>
-              <div class="qi-cs-stat-label">${issue.month || '전체'} 접수</div>
-            </div>
-            <div class="qi-cs-stat" style="flex:1;margin-bottom:0">
-              <div class="qi-cs-stat-num">${stat.amount.toLocaleString()}원</div>
-              <div class="qi-cs-stat-label">총 하자보수비</div>
-            </div>
+          <div class="qi-cs-stat" style="display:flex;align-items:center;gap:12px;margin-bottom:var(--space-2);flex-wrap:wrap">
+            <span><span class="qi-cs-stat-num">${stat.count}건</span><span class="qi-cs-stat-label" style="margin-left:4px">${issue.month || '전체'} 접수</span></span>
+            <span style="color:var(--border)">|</span>
+            <span><span class="qi-cs-stat-num">${stat.amount.toLocaleString()}원</span><span class="qi-cs-stat-label" style="margin-left:4px">총 하자보수비</span></span>
           </div>
           <div class="qi-cs-cases" id="qi-cs-cases-${issue.id}"></div>
         </div>
