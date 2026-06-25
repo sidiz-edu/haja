@@ -2372,10 +2372,13 @@ function renderQiCards() {
     container.appendChild(card);
     // 케이스 목록 채우기 (XSS 안전하게 DOM으로)
     const casesEl = card.querySelector(`#qi-cs-cases-${issue.id}`);
+    const typeColor = TYPE_COLORS[issue.related_type] || '#ABAEB1';
     if (casesEl) {
       details.forEach((d, i) => {
         const item = document.createElement('div');
         item.className = 'qi-cs-case';
+        item.style.background = typeColor + '22';
+        item.style.borderColor = typeColor + '55';
         item.innerHTML = `<span class="qi-cs-case-num"></span><span class="qi-cs-case-prod"></span>`;
         item.querySelector('.qi-cs-case-num').textContent = d.num;
         item.querySelector('.qi-cs-case-prod').textContent = d.prod;
