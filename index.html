@@ -494,7 +494,8 @@ a{color:inherit;text-decoration:none}
 .qi-textarea::placeholder{color:var(--text-tertiary)}
 .qi-textarea:focus{background:#f8faff;border-radius:4px}
 .qi-editor-wrap{margin-bottom:0}
-.qi-editor-toolbar{display:flex;align-items:center;gap:3px;margin-bottom:4px}
+.qi-editor-toolbar{display:flex;align-items:center;gap:3px;margin-bottom:0;max-height:0;overflow:hidden;opacity:0;transition:max-height .15s,opacity .15s,margin-bottom .15s}
+.qi-editor-wrap:focus-within .qi-editor-toolbar{max-height:32px;opacity:1;margin-bottom:4px}
 .qi-editor-toolbar button{font-size:11px;font-weight:700;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--surface);cursor:pointer;color:var(--text-primary);font-family:var(--font-display);line-height:1.6}
 .qi-editor-toolbar button:hover{background:var(--gray-100);border-color:var(--blue);color:var(--blue)}
 .qi-toolbar-sep{width:1px;height:14px;background:var(--border);margin:0 3px;flex-shrink:0}
