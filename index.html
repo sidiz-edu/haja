@@ -490,7 +490,7 @@ a{color:inherit;text-decoration:none}
 .qi-col{padding:var(--space-3) var(--space-4);border-right:1px solid var(--border)}
 .qi-col:last-child{border-right:none}
 .qi-col-label{font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:var(--tracking-wide);font-family:var(--font-kr);text-transform:none;margin-bottom:var(--space-2)}
-.qi-textarea{width:100%;border:none;outline:none;resize:none;font-family:var(--font-kr);font-size:var(--fs-xs);color:var(--text-primary);background:var(--gray-100);border-radius:4px;padding:var(--space-2);line-height:var(--lh-relaxed);min-height:80px;letter-spacing:var(--tracking-kr);font-weight:var(--fw-light)}
+.qi-textarea{width:100%;border:none;outline:none;resize:none;font-family:var(--font-kr);font-size:var(--fs-xs);color:var(--text-primary);background:var(--gray-100);border-radius:4px;padding:var(--space-2);line-height:var(--lh-relaxed);min-height:80px;max-height:320px;overflow-y:auto;letter-spacing:var(--tracking-kr);font-weight:var(--fw-light)}
 .qi-textarea::placeholder{color:var(--text-tertiary)}
 .qi-textarea:focus{background:#f8faff;border-radius:4px}
 .qi-radio-group{display:flex;align-items:center;gap:8px;margin-bottom:var(--space-2);flex-wrap:wrap}
@@ -2309,6 +2309,11 @@ async function loadQiIssues() {
   renderQiCards();
 }
 
+function autoExpand(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 320) + 'px';
+}
+
 function renderQiCards() {
   const container = document.getElementById('qi-cards');
   const empty = document.getElementById('qi-empty');
@@ -2342,7 +2347,7 @@ function renderQiCards() {
         </div>
         <div class="qi-col">
           <div class="qi-col-label">AS엔지니어팀 조치 방법</div>
-          <textarea class="qi-textarea" id="qi-as-${issue.id}" placeholder="검수 방법을 기록하세요...">${_htmlEsc(issue.as_inspection_note||'')}</textarea>
+          <textarea class="qi-textarea" id="qi-as-${issue.id}" placeholder="검수 방법을 기록하세요..." oninput="autoExpand(this)">${_htmlEsc(issue.as_inspection_note||'')}</textarea>
         </div>
         <div class="qi-col">
           <div class="qi-col-label">품질관리팀 검수 방법</div>
@@ -2357,12 +2362,12 @@ function renderQiCards() {
             <label class="qi-radio-label"><input type="radio" name="qc-ins-${issue.id}" value="parts" ${issue.qc_inspection_type==='parts'?'checked':''}> 부품만</label>
             <label class="qi-radio-label"><input type="radio" name="qc-ins-${issue.id}" value="other" ${issue.qc_inspection_type==='other'?'checked':''}> 기타</label>
           </div>
-          <textarea class="qi-textarea" id="qi-qc-${issue.id}" placeholder="판정 상세 내용..." style="min-height:48px">${_htmlEsc(issue.qc_standard_detail||'')}</textarea>
+          <textarea class="qi-textarea" id="qi-qc-${issue.id}" placeholder="판정 상세 내용..." style="min-height:48px" oninput="autoExpand(this)">${_htmlEsc(issue.qc_standard_detail||'')}</textarea>
         </div>
       </div>
       <div class="qi-footer">
         <div class="qi-col-label">컨택센터에 요청하는 사항 (품질관리팀 작성)</div>
-        <textarea class="qi-textarea" id="qi-cs-${issue.id}" placeholder="앞으로 어떻게 기록하는 게 좋을지 작성하세요..." style="min-height:48px">${_htmlEsc(issue.cs_guideline||'')}</textarea>
+        <textarea class="qi-textarea" id="qi-cs-${issue.id}" placeholder="앞으로 어떻게 기록하는 게 좋을지 작성하세요..." style="min-height:48px" oninput="autoExpand(this)">${_htmlEsc(issue.cs_guideline||'')}</textarea>
       </div>`;
     container.appendChild(card);
     // 케이스 목록 채우기 (XSS 안전하게 DOM으로)
@@ -2382,6 +2387,8 @@ function renderQiCards() {
       });
     }
   });
+  // 기존 내용이 있는 textarea 초기 높이 조정
+  container.querySelectorAll('.qi-textarea').forEach(autoExpand);
 }
 
 async function saveQiIssue(id) {
