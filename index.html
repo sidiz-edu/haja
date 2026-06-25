@@ -2280,53 +2280,32 @@ async function saveGuideSection(key) {
 
 /* ── QUALITY ISSUES (Supabase) ── */
 let _qiIssues = [];
+let _asCards = [];
 
-function _getCsStat(type) {
+function _getCsStat(type, month) {
   if (!type) return {count:0, amount:0};
-  const cards = document.querySelectorAll('.row-card');
-  let count=0, amount=0;
-  cards.forEach(c => {
-    if (c.dataset.type === type) {
-      count++;
-      const amtEl = c.querySelector('.row-amount');
-      if (amtEl) {
-        const n = parseInt(amtEl.textContent.replace(/[^0-9]/g,''));
-        if (!isNaN(n)) amount += n;
-      }
-    }
-  });
-  return {count, amount};
+  const filtered = _asCards.filter(c => c.type === type && (!month || c.month === month));
+  return {
+    count: filtered.length,
+    amount: filtered.reduce((s, c) => s + (c.amount || 0), 0)
+  };
 }
 
-function _getCsDetails(type) {
+function _getCsDetails(type, month) {
   if (!type) return [];
-  const result = [];
-  document.querySelectorAll('.row-card').forEach(c => {
-    if (c.dataset.type !== type) return;
-    const num = c.querySelector('.row-num')?.textContent.trim() || '';
-    const prod = c.querySelector('.row-prod')?.textContent.trim() || '';
-    // 고객 요구 = .row-req에서 "고객 요구:" 텍스트 제거
-    const reqEl = c.querySelector('.row-req');
-    let 고객요구 = '';
-    if (reqEl) {
-      고객요구 = reqEl.textContent.replace(/^고객\s*요구\s*[:：]?\s*/,'').trim();
-    }
-    // 점검 및 조치
-    const dlLabels = c.querySelectorAll('.dl');
-    const dlVals = c.querySelectorAll('.dl-val');
-    let 점검조치 = '';
-    dlLabels.forEach((lbl, i) => {
-      if (lbl.textContent.trim() === '점검 및 조치') 점검조치 = dlVals[i]?.textContent.trim() || '';
-    });
-    result.push({num, prod, 고객요구, 점검조치});
-  });
-  return result;
+  return _asCards
+    .filter(c => c.type === type && (!month || c.month === month))
+    .map(c => ({num: c.p_number, prod: c.product, 고객요구: c.customer_request, 점검조치: c.inspection_action}));
 }
 
 async function loadQiIssues() {
   if (!_sb) return;
-  const {data} = await _sb.from('haja_quality_issues').select('*').order('created_at', {ascending:false});
-  _qiIssues = data || [];
+  const [{data: issues}, {data: asCards}] = await Promise.all([
+    _sb.from('haja_quality_issues').select('*').order('created_at', {ascending:false}),
+    _sb.from('haja_as_cards').select('*')
+  ]);
+  _qiIssues = issues || [];
+  _asCards = asCards || [];
   renderQiCards();
 }
 
@@ -2338,8 +2317,8 @@ function renderQiCards() {
   const existing = container.querySelectorAll('.qi-card');
   existing.forEach(e => e.remove());
   _qiIssues.forEach(issue => {
-    const stat = _getCsStat(issue.related_type);
-    const details = _getCsDetails(issue.related_type);
+    const stat = _getCsStat(issue.related_type, issue.month);
+    const details = _getCsDetails(issue.related_type, issue.month);
     const card = document.createElement('div');
     card.className='qi-card';
     card.dataset.id = issue.id;
@@ -2357,7 +2336,7 @@ function renderQiCards() {
           <div style="display:flex;gap:8px;margin-bottom:var(--space-2)">
             <div class="qi-cs-stat" style="flex:1;margin-bottom:0">
               <div class="qi-cs-stat-num">${stat.count}건</div>
-              <div class="qi-cs-stat-label">26년 5월 접수</div>
+              <div class="qi-cs-stat-label">${issue.month || '전체'} 접수</div>
             </div>
             <div class="qi-cs-stat" style="flex:1;margin-bottom:0">
               <div class="qi-cs-stat-num">${stat.amount.toLocaleString()}원</div>
