@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --gray-0:#FFFFFF;--gray-50:#F7F7F8;--gray-100:#F0F0F1;--gray-200:#D9DCDD;
@@ -63,7 +64,17 @@ a{color:inherit;text-decoration:none}
   border-bottom:var(--border-hairline);
   padding:var(--space-5) var(--space-6) var(--space-4);
 }
-.header-inner{display:flex;align-items:flex-start;gap:var(--space-4);margin-bottom:var(--space-4)}
+.header-inner{display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-4)}
+.dl-wrap{position:relative;margin-left:auto;flex-shrink:0}
+.dl-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;font-size:var(--fs-xs);font-family:var(--font-kr);font-weight:var(--fw-book);color:var(--text-secondary);background:var(--surface);border:1px solid var(--border-default);border-radius:var(--radius-md);cursor:pointer;transition:background .12s,color .12s;white-space:nowrap}
+.dl-btn:hover{background:var(--bg-subtle);color:var(--text-primary)}
+.dl-btn svg{width:15px;height:15px;flex-shrink:0}
+.dl-menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-md);min-width:160px;overflow:hidden;z-index:100;display:none}
+.dl-menu.open{display:block}
+.dl-menu-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:var(--fs-xs);font-family:var(--font-kr);color:var(--text-primary);cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.dl-menu-item:hover{background:var(--bg-subtle)}
+.dl-menu-item svg{width:14px;height:14px;flex-shrink:0;color:var(--text-tertiary)}
+.dl-menu-sep{height:1px;background:var(--border-subtle);margin:0}
 .sidiz-mark{display:flex;align-items:center;gap:10px;flex-shrink:0;padding-top:2px}
 .sidiz-mark-text{
   font-family:var(--font-display);
@@ -569,6 +580,23 @@ a{color:inherit;text-decoration:none}
     <div class="mark-div"></div>
     <div class="header-titles">
       <h1 id="dashboard-title" title="클릭하여 편집" onclick="startTitleEdit()" style="cursor:pointer">하자보수비 분석 대시보드 (시디즈 옴니채널운영팀)</h1>
+    </div>
+    <div class="dl-wrap" id="dl-wrap">
+      <button class="dl-btn" onclick="toggleDlMenu(event)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3M2 11v1.5A1.5 1.5 0 0 0 3.5 14h9A1.5 1.5 0 0 0 14 12.5V11"/></svg>
+        엑셀 다운로드
+      </button>
+      <div class="dl-menu" id="dl-menu">
+        <button class="dl-menu-item" onclick="downloadExcel('all')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="2"/><path d="M1 5h14M5 5v10"/></svg>
+          전체 월 통합
+        </button>
+        <div class="dl-menu-sep"></div>
+        <button class="dl-menu-item" onclick="downloadExcel('current')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M6 2v12"/></svg>
+          현재 탭 월만
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -2495,6 +2523,66 @@ async function juneSetProduct(id, product) {
   } else {
     if (wrap) wrap.style.opacity = '1';
     alert('저장 실패: ' + error.message);
+  }
+}
+
+/* ── EXCEL DOWNLOAD ── */
+function toggleDlMenu(e) {
+  e.stopPropagation();
+  document.getElementById('dl-menu').classList.toggle('open');
+}
+function closeDlMenu() {
+  document.getElementById('dl-menu').classList.remove('open');
+}
+document.addEventListener('click', closeDlMenu);
+
+function _getCurrentMonth() {
+  if (document.getElementById('panel-june')?.classList.contains('active')) return '26.06월';
+  if (document.getElementById('panel-analysis')?.classList.contains('active')) return '26.05월';
+  return null;
+}
+
+async function downloadExcel(scope) {
+  closeDlMenu();
+  if (!window.XLSX) { alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+  if (!_sb) return;
+
+  const HEADERS = ['월','하자유형','접수번호','제품','고객명','부품명','고객 요구내역','점검 조치내역','금액(원)','건수'];
+  const FIELDS  = ['month','type','p_number','product','customer','part','customer_request','inspection_action','amount','bundle_count'];
+  const COL_W   = [8,22,16,8,10,20,35,35,12,8].map(w=>({wch:w}));
+
+  function makeSheet(rows) {
+    const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows.map(r => FIELDS.map(f => r[f] ?? ''))]);
+    ws['!cols'] = COL_W;
+    ws['!freeze'] = {xSplit:0, ySplit:1};
+    return ws;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  if (scope === 'all') {
+    const {data} = await _sb.from('haja_as_cards').select('*').order('month').order('type');
+    const rows = data || [];
+    const months = [...new Set(rows.map(r=>r.month))].sort();
+    months.forEach(m => XLSX.utils.book_append_sheet(wb, makeSheet(rows.filter(r=>r.month===m)), m));
+
+    const summary = [['월','총 건수','총 금액(원)','건당 평균(원)'],
+      ...months.map(m => {
+        const mr = rows.filter(r=>r.month===m);
+        const amt = mr.reduce((s,r)=>s+(r.amount||0),0);
+        return [m, mr.length, amt, mr.length ? Math.round(amt/mr.length) : 0];
+      })];
+    const ws = XLSX.utils.aoa_to_sheet(summary);
+    ws['!cols'] = [{wch:10},{wch:10},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws, '월별 요약');
+    XLSX.writeFile(wb, '하자보수비_전체.xlsx');
+
+  } else {
+    const month = _getCurrentMonth();
+    if (!month) { alert('26.05월 또는 26.06월 탭에서 실행해주세요.'); return; }
+    const {data} = await _sb.from('haja_as_cards').select('*').eq('month', month).order('type');
+    XLSX.utils.book_append_sheet(wb, makeSheet(data || []), month);
+    XLSX.writeFile(wb, `하자보수비_${month}.xlsx`);
   }
 }
 
