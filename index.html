@@ -430,6 +430,13 @@ a{color:inherit;text-decoration:none}
 .smry-tbl tfoot td{padding:5px 8px;font-weight:700;border-top:2px solid var(--border-default);background:var(--bg-subtle);font-size:11px}
 .smry-tbl tfoot td.r{text-align:right}
 .smry-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;flex-shrink:0}
+.summary-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:0;margin-bottom:8px;gap:6px}
+.summary-toggle span{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:var(--tracking-kr);font-family:var(--font-kr)}
+.summary-toggle:hover span{color:var(--text-primary)}
+.summary-chevron{width:12px;height:12px;color:var(--text-tertiary);transition:transform .15s;flex-shrink:0}
+.summary-toggle.open .summary-chevron{transform:rotate(180deg)}
+.summary-collapsible{max-height:0;overflow:hidden;transition:max-height .2s ease}
+.summary-collapsible.open{max-height:600px}
 .june-prod-select{
   font-size:11px;font-family:var(--font-kr);color:var(--text-secondary);
   border:1px dashed var(--border-default);border-radius:var(--radius-sm);
@@ -2600,12 +2607,17 @@ function _renderSummaryTables(cards, targetId) {
 
   el.innerHTML = `<div class="month-summary">
     <div class="summary-block">
-      <div class="summary-block-title">제품별 요약</div>
-      <table class="smry-tbl">
-        <thead><tr><th>제품명</th><th class="r">접수번호</th><th class="r">전체건</th><th class="r">합계 금액(원)</th></tr></thead>
-        <tbody>${prodRows}</tbody>
-        <tfoot><tr><td>총합계</td><td class="r">—</td><td class="r">${totalCnt}</td><td class="r">${totalAmt.toLocaleString()}</td></tr></tfoot>
-      </table>
+      <button class="summary-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')" aria-expanded="false">
+        <span>제품별 요약</span>
+        <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4"/></svg>
+      </button>
+      <div class="summary-collapsible">
+        <table class="smry-tbl">
+          <thead><tr><th>제품명</th><th class="r">접수번호</th><th class="r">전체건</th><th class="r">합계 금액(원)</th></tr></thead>
+          <tbody>${prodRows}</tbody>
+          <tfoot><tr><td>총합계</td><td class="r">—</td><td class="r">${totalCnt}</td><td class="r">${totalAmt.toLocaleString()}</td></tr></tfoot>
+        </table>
+      </div>
     </div>
     <div class="summary-block">
       <div class="summary-block-title">유형별 요약</div>
