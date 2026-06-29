@@ -418,7 +418,10 @@ a{color:inherit;text-decoration:none}
   margin-top:4px;letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
 }
 /* SUMMARY TABLES */
-.month-summary{display:flex;gap:var(--space-4);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);overflow-x:auto}
+.month-summary-wrap{border-bottom:1px solid var(--border-subtle)}
+.month-summary-wrap>.summary-toggle{width:100%;padding:8px var(--space-5);border-bottom:none}
+.month-summary-wrap>.summary-toggle.open{border-bottom:1px solid var(--border-subtle)}
+.month-summary{display:flex;gap:var(--space-4);padding:var(--space-4) var(--space-5);overflow-x:auto}
 .summary-block{flex:1;min-width:200px}
 .summary-block-title{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:var(--tracking-kr);margin-bottom:8px;font-family:var(--font-kr)}
 .smry-tbl{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font-kr)}
@@ -2605,27 +2608,30 @@ function _renderSummaryTables(cards, targetId) {
     </tr>`;
   }).join('');
 
-  el.innerHTML = `<div class="month-summary">
-    <div class="summary-block">
-      <button class="summary-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')" aria-expanded="false">
-        <span>제품별 요약</span>
-        <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4"/></svg>
-      </button>
-      <div class="summary-collapsible">
-        <table class="smry-tbl">
-          <thead><tr><th>제품명</th><th class="r">접수번호</th><th class="r">전체건</th><th class="r">합계 금액(원)</th></tr></thead>
-          <tbody>${prodRows}</tbody>
-          <tfoot><tr><td>총합계</td><td class="r">—</td><td class="r">${totalCnt}</td><td class="r">${totalAmt.toLocaleString()}</td></tr></tfoot>
-        </table>
+  el.innerHTML = `<div class="month-summary-wrap">
+    <button class="summary-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      <span>요약 보기</span>
+      <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4"/></svg>
+    </button>
+    <div class="summary-collapsible">
+      <div class="month-summary">
+        <div class="summary-block">
+          <div class="summary-block-title">제품별 요약</div>
+          <table class="smry-tbl">
+            <thead><tr><th>제품명</th><th class="r">접수번호</th><th class="r">전체건</th><th class="r">합계 금액(원)</th></tr></thead>
+            <tbody>${prodRows}</tbody>
+            <tfoot><tr><td>총합계</td><td class="r">—</td><td class="r">${totalCnt}</td><td class="r">${totalAmt.toLocaleString()}</td></tr></tfoot>
+          </table>
+        </div>
+        <div class="summary-block">
+          <div class="summary-block-title">유형별 요약</div>
+          <table class="smry-tbl">
+            <thead><tr><th>하자유형</th><th class="r">건수</th><th class="r">금액(원)</th><th class="r">비율</th></tr></thead>
+            <tbody>${typeRows}</tbody>
+            <tfoot><tr><td>총합계</td><td class="r">${totalCnt}</td><td class="r">${totalAmt.toLocaleString()}</td><td class="r">100%</td></tr></tfoot>
+          </table>
+        </div>
       </div>
-    </div>
-    <div class="summary-block">
-      <div class="summary-block-title">유형별 요약</div>
-      <table class="smry-tbl">
-        <thead><tr><th>하자유형</th><th class="r">건수</th><th class="r">금액(원)</th><th class="r">비율</th></tr></thead>
-        <tbody>${typeRows}</tbody>
-        <tfoot><tr><td>총합계</td><td class="r">${totalCnt}</td><td class="r">${totalAmt.toLocaleString()}</td><td class="r">100%</td></tr></tfoot>
-      </table>
     </div>
   </div>`;
 }
