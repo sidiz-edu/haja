@@ -2644,7 +2644,8 @@ async function handleAttachment(pNumber, month, prefix, input) {
 
     setProgress(85, '업로드 중…');
     const ext = isVideo ? 'mp4' : 'jpg';
-    const path = `dispute/${month}/${pNumber}/${Date.now()}.${ext}`;
+    const safeMonth = month.replace(/[^\w.-]/g, '');
+    const path = `dispute/${safeMonth}/${pNumber}/${Date.now()}.${ext}`;
     const {error: upErr} = await _sb.storage.from('haja-attachments').upload(path, blob, {contentType: blob.type || (isVideo?'video/mp4':'image/jpeg')});
     if (upErr) {
       const msg = upErr.message || '';
