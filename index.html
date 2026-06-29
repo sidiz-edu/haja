@@ -599,14 +599,14 @@ a{color:inherit;text-decoration:none}
 .flag-btn:hover{border-color:#d97706;color:#d97706;background:#fffbf0}
 .flag-btn.flagged{border-color:#dc2626;color:#dc2626;background:#fff5f5}
 .row-card.flagged-card{border-left:3px solid #f87171;background:#fffafa}
-.dispute-panel{padding:var(--space-5)}
-.dispute-top{display:flex;align-items:center;margin-bottom:var(--space-4)}
-.dispute-top h2{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-primary);font-family:var(--font-kr)}
-.dispute-count-badge{margin-left:var(--space-3);font-size:11px;padding:2px 10px;border-radius:var(--radius-pill);background:#fee2e2;color:#dc2626;font-family:var(--font-display);font-weight:600}
-.dispute-empty{text-align:center;padding:80px 20px;color:var(--text-tertiary);font-family:var(--font-kr);font-size:var(--fs-sm)}
-.dispute-group-title{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:var(--tracking-wide);color:var(--text-tertiary);font-family:var(--font-display);font-weight:700;margin-bottom:var(--space-3);padding-bottom:var(--space-2);border-bottom:1px solid var(--border-subtle);margin-top:var(--space-5)}
-.dispute-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid #fecaca;padding:var(--space-4) var(--space-5);margin-bottom:var(--space-3);display:flex;gap:var(--space-5);align-items:flex-start}
-.dispute-card:hover{box-shadow:var(--shadow-md)}
+.dispute-sec{margin-bottom:var(--space-4);border:1px solid #fecaca;border-radius:var(--radius-lg);overflow:hidden;background:#fff8f8}
+.dispute-sec-header{display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-4);border-bottom:1px solid #fecaca;background:#fff0f0}
+.dispute-sec-title{font-size:var(--fs-xs);font-weight:700;color:#dc2626;font-family:var(--font-kr);letter-spacing:var(--tracking-kr)}
+.dispute-sec-count{font-size:10px;padding:1px 8px;border-radius:var(--radius-pill);background:#fecaca;color:#dc2626;font-family:var(--font-display);font-weight:600}
+.dispute-sec-toggle{margin-left:auto;font-size:11px;padding:2px 10px;border-radius:6px;border:1px solid #fca5a5;background:none;color:#dc2626;cursor:pointer;font-family:var(--font-kr);transition:all .15s}
+.dispute-sec-toggle:hover{background:#fee2e2}
+.dispute-sec-cards{padding:var(--space-3) var(--space-4)}
+.dispute-sec-empty{padding:20px;text-align:center;color:var(--text-tertiary);font-family:var(--font-kr);font-size:var(--fs-xs)}
 .unflag-btn{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #fca5a5;background:#fff5f5;color:#dc2626;cursor:pointer;font-family:var(--font-kr);transition:all .15s;white-space:nowrap;margin-bottom:6px;display:block;margin-left:auto}
 .unflag-btn:hover{background:#fee2e2;border-color:#ef4444}
 .dispute-note-wrap{margin-top:8px}
@@ -651,7 +651,6 @@ a{color:inherit;text-decoration:none}
   <button class="tab-btn" onclick="switchTab('analysis')">26.05월</button>
   <button class="tab-btn" onclick="switchTab('quality')">주요항목</button>
   <button class="tab-btn" onclick="switchTab('guide')">조치내역 작성 방법</button>
-  <button class="tab-btn" onclick="switchTab('dispute')" id="tab-dispute">이의제기 목록</button>
 </div>
 
 <!-- MEMO MODAL -->
@@ -785,6 +784,7 @@ a{color:inherit;text-decoration:none}
     <div class="search-wrap">
       <input type="text" id="searchBox" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="applyFilter()">
     </div>
+    <div id="analysis-dispute-section"></div>
     <div id="typeBreakdown"></div>
     <div id="cardList">
       
@@ -2033,6 +2033,7 @@ a{color:inherit;text-decoration:none}
     <div class="search-wrap">
       <input type="text" id="june-search" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="juneApplyFilter()">
     </div>
+    <div id="june-dispute-section"></div>
     <div id="june-card-list"></div>
   </div>
 </div>
@@ -2111,17 +2112,6 @@ a{color:inherit;text-decoration:none}
       <button class="qi-modal-btn" onclick="closeQiModal()">취소</button>
       <button class="qi-modal-btn primary" onclick="createQiIssue()">추가</button>
     </div>
-  </div>
-</div>
-
-<!-- DISPUTE PANEL -->
-<div id="panel-dispute" class="panel">
-  <div class="dispute-panel">
-    <div class="dispute-top">
-      <h2>이의제기 목록</h2>
-      <span id="dispute-count-badge" class="dispute-count-badge" style="display:none"></span>
-    </div>
-    <div id="dispute-list"><div class="dispute-empty">로딩 중…</div></div>
   </div>
 </div>
 
@@ -2381,17 +2371,12 @@ async function _ensureFlags() {
   const {data} = await _sb.from('haja_flags').select('p_number,month');
   _flaggedSet = new Set((data||[]).map(f => f.p_number+'|'+f.month));
   _flagsLoaded = true;
-  const cnt = _flaggedSet.size;
-  const badge = document.getElementById('dispute-count-badge');
-  const tabBtn = document.getElementById('tab-dispute');
-  if (badge) { badge.dataset.count = cnt; if (cnt>0){badge.textContent=cnt+'건';badge.style.display='';} }
-  if (tabBtn && cnt>0) tabBtn.textContent = `이의제기 목록 (${cnt})`;
 }
 
 async function toggleFlag(pNumber, month, btn) {
   if (!_sb) return;
   const key = pNumber+'|'+month;
-  btn.disabled = true;
+  if (btn) btn.disabled = true;
   if (_flaggedSet.has(key)) {
     await _sb.from('haja_flags').delete().eq('p_number', pNumber).eq('month', month);
     _flaggedSet.delete(key);
@@ -2399,161 +2384,110 @@ async function toggleFlag(pNumber, month, btn) {
     await _sb.from('haja_flags').insert({p_number: pNumber, month});
     _flaggedSet.add(key);
   }
-  btn.disabled = false;
-  const flagged = _flaggedSet.has(key);
-  btn.className = 'flag-btn' + (flagged ? ' flagged' : '');
-  btn.title = flagged ? '이의제기 해제' : '이의제기 표시';
-  btn.querySelector('svg').setAttribute('fill', flagged ? 'currentColor' : 'none');
-  const card = btn.closest('.row-card');
-  if (card) card.classList.toggle('flagged-card', flagged);
-  // update dispute tab badge
-  _updateDisputeBadge(flagged ? 1 : -1);
+  if (btn) btn.disabled = false;
+  _refreshFlagUI(pNumber, month);
 }
 
-function _updateDisputeBadge(delta) {
-  const badge = document.getElementById('dispute-count-badge');
-  const tabBtn = document.getElementById('tab-dispute');
-  if (!badge) return;
-  const cur = parseInt(badge.dataset.count||'0') + delta;
-  badge.dataset.count = cur;
-  if (cur > 0) {
-    badge.style.display = '';
-    badge.textContent = cur + '건';
-    if (tabBtn) tabBtn.textContent = `이의제기 목록 (${cur})`;
-  } else {
-    badge.style.display = 'none';
-    if (tabBtn) tabBtn.textContent = '이의제기 목록';
-  }
+function _refreshFlagUI(pNumber, month) {
+  const flagged = _flaggedSet.has(pNumber+'|'+month);
+  const listId = month === '26.06월' ? 'june-card-list' : 'cardList';
+  document.querySelectorAll(`#${listId} .row-card`).forEach(rc => {
+    if (rc.querySelector('.row-num')?.textContent.trim() !== pNumber) return;
+    rc.classList.toggle('flagged-card', flagged);
+    const fb = rc.querySelector('.flag-btn');
+    if (fb) {
+      fb.className = 'flag-btn' + (flagged ? ' flagged' : '');
+      fb.title = flagged ? '이의제기 해제' : '이의제기 표시';
+      fb.querySelector('svg')?.setAttribute('fill', flagged ? 'currentColor' : 'none');
+    }
+  });
+  if (month === '26.06월') renderDisputeSection('june', _juneCards, '26.06월');
+  else if (month === '26.05월') renderDisputeSection('analysis', _analysisCards, '26.05월');
 }
 
-async function loadDisputePanel() {
-  if (!_sb) return;
-  _flagsLoaded = false; // 항상 최신 데이터
-  await _ensureFlags();
-  const listEl = document.getElementById('dispute-list');
-  if (!listEl) return;
-  listEl.innerHTML = '<div class="dispute-empty">로딩 중…</div>';
+function renderDisputeSection(prefix, cards, month) {
+  const el = document.getElementById(prefix+'-dispute-section');
+  if (!el) return;
+  const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|'+month)).map(k=>k.split('|')[0]));
+  if (!flaggedPnums.size) { el.innerHTML = ''; return; }
 
-  const {data: flags} = await _sb.from('haja_flags').select('*').order('created_at', {ascending: true});
-  if (!flags || !flags.length) {
-    listEl.innerHTML = '<div class="dispute-empty">이의제기로 체크된 항목이 없습니다.<br>각 월 탭의 카드에서 🚩 버튼을 눌러 추가하세요.</div>';
-    const badge = document.getElementById('dispute-count-badge');
-    if (badge) { badge.style.display='none'; badge.dataset.count='0'; }
-    document.getElementById('tab-dispute').textContent = '이의제기 목록';
-    return;
-  }
-
-  // 카드 데이터 로드
-  const pnums = [...new Set(flags.map(f => f.p_number))];
-  const {data: cards} = await _sb.from('haja_as_cards').select('*').in('p_number', pnums);
-  const allCards = cards || [];
-
-  // 월별 그룹
-  const byMonth = {};
-  flags.forEach(f => {
-    if (!byMonth[f.month]) byMonth[f.month] = [];
-    const mc = allCards.filter(c => c.p_number === f.p_number && c.month === f.month);
-    if (!mc.length) return;
-    const rep = mc[0];
-    const totalAmt = mc.reduce((s,c)=>s+(c.amount||0),0);
-    byMonth[f.month].push({pNumber: f.p_number, month: f.month, flagId: f.id, note: f.note||'',
-      type: rep.type, customer: rep.customer, product: rep.product, part: rep.part,
-      customerRequest: rep.customer_request, inspectionAction: rep.inspection_action,
-      amount: totalAmt, bundleCount: mc.length});
+  const byPnum = {};
+  cards.forEach(c => {
+    if (!flaggedPnums.has(c.p_number)) return;
+    (byPnum[c.p_number] = byPnum[c.p_number]||[]).push(c);
   });
 
-  const totalCount = flags.length;
-  const badge = document.getElementById('dispute-count-badge');
-  if (badge) { badge.textContent = totalCount+'건'; badge.style.display=''; badge.dataset.count=totalCount; }
-  document.getElementById('tab-dispute').textContent = `이의제기 목록 (${totalCount})`;
+  const items = Object.keys(byPnum).map(pnum => {
+    const rows = byPnum[pnum];
+    const rep = rows[0];
+    return {pNumber: pnum, type: rep.type, customer: rep.customer, product: rep.product,
+      part: rep.part, customerRequest: rep.customer_request, inspectionAction: rep.inspection_action,
+      amount: rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount: rows.length};
+  });
 
-  const months = Object.keys(byMonth).sort();
-  listEl.innerHTML = months.map(m => {
-    const items = byMonth[m];
-    const cards = items.map(it => {
-      const col = TYPE_COLORS[it.type] || '#ABAEB1';
-      return `<div class="dispute-card" id="dispute-card-${it.pNumber}">
-        <div class="row-left">
-          <span class="tag" style="background:${col}">${it.type||''}</span>
-          <div class="row-num">${it.pNumber}</div>
-          <div class="row-customer">${it.customer||''}</div>
-          <div class="row-prod" style="font-size:var(--fs-xs);color:var(--text-secondary);margin-top:4px;font-family:var(--font-display);text-transform:uppercase;letter-spacing:var(--tracking-wide)">${it.product||''}</div>
-          <div class="row-part" style="margin-top:4px">부위: ${it.part||''}</div>
-        </div>
-        <div class="row-center">
-          <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${it.inspectionAction||''}</span></div>
-          <div class="row-req"><strong>고객 요구:</strong> ${it.customerRequest||''}</div>
-          <div class="dispute-note-wrap">
-            <input class="dispute-note-input" placeholder="이의제기 사유 메모 (선택)…" value="${(it.note||'').replace(/"/g,'&quot;')}"
-              onblur="saveDisputeNote('${it.pNumber}','${m}',this)" onkeydown="if(event.key==='Enter')this.blur()">
-            <div class="dispute-note-status" id="dispute-note-status-${it.pNumber}"></div>
+  el.innerHTML = `<div class="dispute-sec">
+    <div class="dispute-sec-header">
+      <svg viewBox="0 0 16 16" fill="currentColor" stroke="none" width="13" height="13" style="color:#dc2626;flex-shrink:0"><path d="M3 2v12M3 2l9 4-9 4"/></svg>
+      <span class="dispute-sec-title">이의제기 목록</span>
+      <span class="dispute-sec-count">${items.length}건</span>
+      <button class="dispute-sec-toggle" onclick="this.closest('.dispute-sec').querySelector('.dispute-sec-cards').classList.toggle('hidden')">접기 / 펼치기</button>
+    </div>
+    <div class="dispute-sec-cards">
+      ${items.map(it => {
+        const col = TYPE_COLORS[it.type] || '#ABAEB1';
+        return `<div class="row-card flagged-card" style="margin-bottom:var(--space-2)">
+          <div class="row-left">
+            <span class="tag" style="background:${col}">${it.type||''}</span>
+            <div class="row-num">${it.pNumber}</div>
+            <div class="row-customer">${it.customer||''}</div>
+            <div class="row-prod">${it.product||''}</div>
+            <div class="row-part">부위: ${it.part||''}</div>
           </div>
-        </div>
-        <div class="row-right">
-          <button class="unflag-btn" onclick="unflagCard('${it.pNumber}','${m}',this)">해제</button>
-          <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
-          <div class="row-count">${it.bundleCount}건 묶음</div>
-        </div>
-      </div>`;
-    }).join('');
-    return `<div class="dispute-month-group">
-      <div class="dispute-group-title">${m} — ${items.length}건</div>
-      ${cards}
-    </div>`;
-  }).join('');
+          <div class="row-center">
+            <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${it.inspectionAction||''}</span></div>
+            <div class="row-req"><strong>고객 요구:</strong> ${it.customerRequest||''}</div>
+            <div class="dispute-note-wrap">
+              <input class="dispute-note-input" placeholder="이의제기 사유 메모 (선택)…"
+                onblur="saveDisputeNote('${it.pNumber}','${month}',this)" onkeydown="if(event.key==='Enter')this.blur()">
+              <div class="dispute-note-status" id="dnote-${it.pNumber}"></div>
+            </div>
+          </div>
+          <div class="row-right">
+            <button class="unflag-btn" onclick="toggleFlag('${it.pNumber}','${month}',null)">해제</button>
+            <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
+            <div class="row-count">${it.bundleCount}건 묶음</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // 메모 값 비동기 로드
+  _loadDisputeNotes(items.map(i=>i.pNumber), month, prefix);
+}
+
+async function _loadDisputeNotes(pnums, month, prefix) {
+  if (!_sb || !pnums.length) return;
+  const {data} = await _sb.from('haja_flags').select('p_number,note').in('p_number', pnums).eq('month', month);
+  (data||[]).forEach(f => {
+    const el = document.querySelector(`#${prefix}-dispute-section .dispute-note-input[onblur*="${f.p_number}"]`);
+    if (el && f.note) el.value = f.note;
+  });
 }
 
 async function saveDisputeNote(pNumber, month, input) {
   if (!_sb) return;
-  const statusEl = document.getElementById('dispute-note-status-'+pNumber);
+  const statusEl = document.getElementById('dnote-'+pNumber);
   if (statusEl) statusEl.textContent = '저장 중…';
   const {error} = await _sb.from('haja_flags').update({note: input.value}).eq('p_number', pNumber).eq('month', month);
   if (statusEl) { statusEl.textContent = error ? '오류' : '저장됨 ✓'; setTimeout(()=>{ statusEl.textContent=''; },1500); }
 }
 
-async function unflagCard(pNumber, month, btn) {
-  if (!_sb) return;
-  btn.disabled = true;
-  const {error} = await _sb.from('haja_flags').delete().eq('p_number', pNumber).eq('month', month);
-  if (!error) {
-    _flaggedSet.delete(pNumber+'|'+month);
-    // 패널에서 카드 제거
-    const card = document.getElementById('dispute-card-'+pNumber);
-    if (card) card.remove();
-    _updateDisputeBadge(-1);
-    // 월 그룹이 비면 그룹도 제거
-    document.querySelectorAll('.dispute-month-group').forEach(g => {
-      if (!g.querySelector('.dispute-card')) g.remove();
-    });
-    if (!document.querySelector('.dispute-card')) {
-      document.getElementById('dispute-list').innerHTML = '<div class="dispute-empty">이의제기로 체크된 항목이 없습니다.</div>';
-    }
-    // 다른 탭 카드에서도 플래그 해제 반영
-    const junCard = document.querySelector(`#june-card-list .row-card .flag-btn`);
-    document.querySelectorAll('#june-card-list .row-card').forEach(rc => {
-      const numEl = rc.querySelector('.row-num');
-      if (numEl && numEl.textContent.trim() === pNumber) {
-        rc.classList.remove('flagged-card');
-        const fb = rc.querySelector('.flag-btn');
-        if (fb) { fb.className='flag-btn'; fb.title='이의제기 표시'; fb.querySelector('svg')?.setAttribute('fill','none'); }
-      }
-    });
-    document.querySelectorAll('#cardList .row-card').forEach(rc => {
-      const numEl = rc.querySelector('.row-num');
-      if (numEl && numEl.textContent.trim() === pNumber) {
-        rc.classList.remove('flagged-card');
-        const fb = rc.querySelector('.flag-btn');
-        if (fb) { fb.className='flag-btn'; fb.title='이의제기 표시'; fb.querySelector('svg')?.setAttribute('fill','none'); }
-      }
-    });
-  } else { btn.disabled = false; }
-}
-
 /* ── TAB SWITCHING ── */
 function switchTab(tab) {
-  const tabs = ['june','analysis','quality','guide','dispute'];
+  const tabs = ['june','analysis','quality','guide'];
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
-  ['analysis','june','quality','guide','dispute'].forEach(id => {
+  ['june','analysis','quality','guide'].forEach(id => {
     const el = document.getElementById('panel-'+id);
     if (el) el.classList.toggle('active', id===tab);
   });
@@ -2561,7 +2495,6 @@ function switchTab(tab) {
   if (tab==='june') loadJuneData();
   if (tab==='quality') loadQiIssues();
   if (tab==='guide') loadGuide();
-  if (tab==='dispute') loadDisputePanel();
 }
 
 /* ── JUNE TAB ── */
@@ -2661,6 +2594,7 @@ function renderJunePanel() {
   document.getElementById('june-sidebar').innerHTML = sidebarHtml;
   _renderSummaryTables(_juneCards, 'june-summary');
   juneApplyFilter();
+  renderDisputeSection('june', _juneCards, '26.06월');
 }
 
 function juneFilterType(t) {
@@ -2862,6 +2796,7 @@ async function loadAnalysisSummary() {
   _analysisLoaded = true;
   _renderSummaryTables(_analysisCards, 'analysis-summary');
   _injectAnalysisFlags();
+  renderDisputeSection('analysis', _analysisCards, '26.05월');
 }
 
 function _injectAnalysisFlags() {
