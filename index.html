@@ -414,6 +414,8 @@ a{color:inherit;text-decoration:none}
   letter-spacing:var(--tracking-wide);text-transform:uppercase;
   font-family:var(--font-display);
 }
+.row-visit-team{font-size:10px;color:var(--text-tertiary);margin-top:2px;font-family:var(--font-kr);letter-spacing:var(--tracking-kr)}
+.row-visit-team span{background:#f0f4ff;color:#3D6FE0;border-radius:3px;padding:1px 5px;font-size:10px}
 .row-part{
   font-size:11px;color:var(--text-tertiary);
   margin-top:4px;letter-spacing:var(--tracking-kr);font-family:var(--font-kr);
@@ -2447,6 +2449,7 @@ function renderDisputeCard(it, month, prefix) {
       <span class="tag" style="background:${col}">${it.type||''}</span>
       <div class="row-num">${it.pNumber}</div>
       <div class="row-customer">${it.customer||''}</div>
+      ${it.visitTeam ? `<div class="row-visit-team"><span>${it.visitTeam}</span></div>` : ''}
       <div class="row-prod">${it.product||''}</div>
       <div class="row-part">부위: ${it.part||''}</div>
     </div>
@@ -2874,7 +2877,7 @@ function juneApplyFilter() {
     _juneCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
     const items = Object.keys(byPnum).map(pnum => {
       const rows = byPnum[pnum], rep = rows[0];
-      return {pNumber:pnum, type:rep.type, customer:rep.customer, product:rep.product, part:rep.part,
+      return {pNumber:pnum, type:rep.type, customer:rep.customer, visitTeam:rep.visit_team, product:rep.product, part:rep.part,
         customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
         amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
     }).filter(it => !search || [it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
@@ -2904,6 +2907,7 @@ function juneApplyFilter() {
         <span class="tag" style="background:${col}">${c.type||''}</span>
         <div class="row-num">${c.p_number||''}</div>
         <div class="row-customer">${c.customer||''}</div>
+        ${c.visit_team ? `<div class="row-visit-team"><span>${c.visit_team}</span></div>` : ''}
         <div class="row-prod" id="june-prod-wrap-${c.id}">${prodInner}</div>
         <div class="row-part">부위: ${c.part||''}</div>
       </div>
@@ -3108,7 +3112,7 @@ function analysisFilterDispute() {
   _analysisCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
   const items = Object.keys(byPnum).map(pnum => {
     const rows = byPnum[pnum], rep = rows[0];
-    return {pNumber:pnum, type:rep.type, customer:rep.customer, product:rep.product, part:rep.part,
+    return {pNumber:pnum, type:rep.type, customer:rep.customer, visitTeam:rep.visit_team, product:rep.product, part:rep.part,
       customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
       amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
   });
