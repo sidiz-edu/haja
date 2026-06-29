@@ -2459,10 +2459,13 @@ function renderDisputeCard(it, month, prefix) {
         <div class="dispute-note-status" id="dnote-${it.pNumber}"></div>
       </div>
       <div class="attach-wrap">
-        <label class="attach-add-btn" for="attach-${prefix}-${it.pNumber}" title="사진 또는 영상 첨부">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l3-3 2 2 3-4 4 5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
-          사진 / 영상 첨부
-        </label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <label class="attach-add-btn" for="attach-${prefix}-${it.pNumber}" title="사진 또는 영상 첨부">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l3-3 2 2 3-4 4 5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
+            사진 / 영상 첨부
+          </label>
+          <span style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-display)">영상 최대 50MB · 자동 압축</span>
+        </div>
         <input type="file" id="attach-${prefix}-${it.pNumber}" accept="image/*,video/mp4,video/webm,video/quicktime,.mov,.mp4,.webm" style="display:none" onchange="handleAttachment('${it.pNumber}','${month}','${prefix}',this)">
         <div class="attach-grid" id="attach-grid-${prefix}-${it.pNumber}"></div>
         <div class="attach-progress-wrap" id="attach-prog-${prefix}-${it.pNumber}" style="display:none">
