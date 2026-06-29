@@ -2536,10 +2536,7 @@ async function _compressImage(file) {
 
 async function _compressVideo(file, onProgress) {
   const ok = await _ensureFFmpeg();
-  if (!ok) {
-    if (file.size > 50 * 1024 * 1024) throw new Error('영상 크기가 50MB를 초과합니다. 짧게 잘라서 다시 시도해주세요.');
-    return file;
-  }
+  if (!ok) return file;
   const inName = 'in_' + Date.now() + '.mp4';
   _ffmpeg.on('progress', ({progress}) => onProgress(Math.min(99, Math.round(progress * 100))));
   await _ffmpeg.writeFile(inName, await _fetchFile(file));
@@ -2596,7 +2593,12 @@ async function handleAttachment(pNumber, month, prefix, input) {
     const ext = isVideo ? 'mp4' : 'jpg';
     const path = `dispute/${month}/${pNumber}/${Date.now()}.${ext}`;
     const {error: upErr} = await _sb.storage.from('haja-attachments').upload(path, blob, {contentType: blob.type || (isVideo?'video/mp4':'image/jpeg')});
-    if (upErr) throw upErr;
+    if (upErr) {
+      const msg = upErr.message || '';
+      if (msg.toLowerCase().includes('payload') || msg.toLowerCase().includes('too large') || msg.toLowerCase().includes('size'))
+        throw new Error('압축 후에도 파일이 너무 큽니다. 영상을 짧게 잘라서 다시 시도해주세요.');
+      throw upErr;
+    }
 
     const {data: urlData} = _sb.storage.from('haja-attachments').getPublicUrl(path);
     const url = urlData.publicUrl;
