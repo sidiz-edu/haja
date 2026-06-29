@@ -251,6 +251,7 @@ a{color:inherit;text-decoration:none}
 }
 .type-card:hover{background:var(--bg-subtle)}
 .type-card.active{background:var(--accent-soft);border-color:rgba(0,62,255,0.2)}
+.type-card.dispute-filter-item.active{background:#fff0f0;border-color:#fca5a5}
 .type-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
 .type-info{flex:1;min-width:0}
 .type-name{
@@ -693,7 +694,7 @@ a{color:inherit;text-decoration:none}
 <div id="analysis-summary"></div>
 <div class="main">
   <!-- SIDEBAR -->
-  <div class="sidebar">
+  <div class="sidebar" id="analysis-sidebar">
     <h2>불만 유형 필터</h2>
     <button class="reset-btn" onclick="resetAll()">전체 보기</button>
     
@@ -799,7 +800,6 @@ a{color:inherit;text-decoration:none}
     <div class="search-wrap">
       <input type="text" id="searchBox" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="applyFilter()">
     </div>
-    <div id="analysis-dispute-section"></div>
     <div id="typeBreakdown"></div>
     <div id="cardList">
       
@@ -2048,7 +2048,6 @@ a{color:inherit;text-decoration:none}
     <div class="search-wrap">
       <input type="text" id="june-search" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="juneApplyFilter()">
     </div>
-    <div id="june-dispute-section"></div>
     <div id="june-card-list"></div>
   </div>
 </div>
@@ -2148,7 +2147,16 @@ a{color:inherit;text-decoration:none}
 let activeType = null;
 let activeProd = null;
 
+function _restoreAnalysisCardList() {
+  if (_analysisDisputeFilter && _analysisCardListHTML) {
+    document.getElementById('cardList').innerHTML = _analysisCardListHTML;
+    _injectAnalysisFlags();
+  }
+  _analysisDisputeFilter = false;
+}
+
 function resetAll() {
+  _restoreAnalysisCardList();
   activeType = null;
   activeProd = null;
   document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
@@ -2160,6 +2168,7 @@ function resetAll() {
 }
 
 function filterType(type) {
+  _restoreAnalysisCardList();
   activeType = (activeType === type) ? null : type;
   activeProd = null;
   document.querySelectorAll('.type-card').forEach(c => c.classList.toggle('active', c.dataset.type === activeType));
@@ -2169,6 +2178,7 @@ function filterType(type) {
 }
 
 function filterProd(prod) {
+  _restoreAnalysisCardList();
   activeProd = (activeProd === prod) ? null : prod;
   activeType = null;
   document.querySelectorAll('.prod-row').forEach(c => c.classList.toggle('active', c.dataset.prod === activeProd));
@@ -2416,88 +2426,54 @@ function _refreshFlagUI(pNumber, month) {
       fb.querySelector('svg')?.setAttribute('fill', flagged ? 'currentColor' : 'none');
     }
   });
-  if (month === '26.06월') renderDisputeSection('june', _juneCards, '26.06월');
-  else if (month === '26.05월') renderDisputeSection('analysis', _analysisCards, '26.05월');
+  if (month === '26.06월' && _juneLoaded) renderJunePanel();
+  else if (month === '26.05월' && _analysisLoaded) { _injectAnalysisFlags(); if (_analysisDisputeFilter) analysisFilterDispute(); }
 }
 
-function renderDisputeSection(prefix, cards, month) {
-  const el = document.getElementById(prefix+'-dispute-section');
-  if (!el) return;
-  const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|'+month)).map(k=>k.split('|')[0]));
-  if (!flaggedPnums.size) { el.innerHTML = ''; return; }
-
-  const byPnum = {};
-  cards.forEach(c => {
-    if (!flaggedPnums.has(c.p_number)) return;
-    (byPnum[c.p_number] = byPnum[c.p_number]||[]).push(c);
-  });
-
-  const items = Object.keys(byPnum).map(pnum => {
-    const rows = byPnum[pnum];
-    const rep = rows[0];
-    return {pNumber: pnum, type: rep.type, customer: rep.customer, product: rep.product,
-      part: rep.part, customerRequest: rep.customer_request, inspectionAction: rep.inspection_action,
-      amount: rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount: rows.length};
-  });
-
-  el.innerHTML = `<div class="dispute-sec">
-    <div class="dispute-sec-header">
-      <svg viewBox="0 0 16 16" fill="currentColor" stroke="none" width="13" height="13" style="color:#dc2626;flex-shrink:0"><path d="M3 2v12M3 2l9 4-9 4"/></svg>
-      <span class="dispute-sec-title">이의제기 목록</span>
-      <span class="dispute-sec-count">${items.length}건</span>
-      <button class="dispute-sec-toggle" onclick="this.closest('.dispute-sec').querySelector('.dispute-sec-cards').classList.toggle('hidden')">접기 / 펼치기</button>
+function renderDisputeCard(it, month, prefix) {
+  const col = TYPE_COLORS[it.type] || '#ABAEB1';
+  return `<div class="row-card flagged-card">
+    <div class="row-left">
+      <span class="tag" style="background:${col}">${it.type||''}</span>
+      <div class="row-num">${it.pNumber}</div>
+      <div class="row-customer">${it.customer||''}</div>
+      <div class="row-prod">${it.product||''}</div>
+      <div class="row-part">부위: ${it.part||''}</div>
     </div>
-    <div class="dispute-sec-cards">
-      ${items.map(it => {
-        const col = TYPE_COLORS[it.type] || '#ABAEB1';
-        return `<div class="row-card flagged-card" style="margin-bottom:var(--space-2)">
-          <div class="row-left">
-            <span class="tag" style="background:${col}">${it.type||''}</span>
-            <div class="row-num">${it.pNumber}</div>
-            <div class="row-customer">${it.customer||''}</div>
-            <div class="row-prod">${it.product||''}</div>
-            <div class="row-part">부위: ${it.part||''}</div>
-          </div>
-          <div class="row-center">
-            <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${it.inspectionAction||''}</span></div>
-            <div class="row-req"><strong>고객 요구:</strong> ${it.customerRequest||''}</div>
-            <div class="dispute-note-wrap">
-              <input class="dispute-note-input" placeholder="이의제기 사유 메모 (선택)…"
-                onblur="saveDisputeNote('${it.pNumber}','${month}',this)" onkeydown="if(event.key==='Enter')this.blur()">
-              <div class="dispute-note-status" id="dnote-${it.pNumber}"></div>
-            </div>
-          </div>
-          <div class="attach-wrap">
-            <label class="attach-add-btn" for="attach-${prefix}-${it.pNumber}" title="사진 또는 영상 첨부">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l3-3 2 2 3-4 4 5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
-              사진 / 영상 첨부
-            </label>
-            <input type="file" id="attach-${prefix}-${it.pNumber}" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleAttachment('${it.pNumber}','${month}','${prefix}',this)">
-            <div class="attach-grid" id="attach-grid-${prefix}-${it.pNumber}"></div>
-            <div class="attach-progress-wrap" id="attach-prog-${prefix}-${it.pNumber}" style="display:none">
-              <div class="attach-progress-bar"><div class="attach-progress-fill" style="width:0%" id="attach-fill-${prefix}-${it.pNumber}"></div></div>
-              <div class="attach-progress-txt" id="attach-ptxt-${prefix}-${it.pNumber}">처리 중…</div>
-            </div>
-          </div>
-          <div class="row-right">
-            <button class="unflag-btn" onclick="toggleFlag('${it.pNumber}','${month}',null)">해제</button>
-            <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
-            <div class="row-count">${it.bundleCount}건 묶음</div>
-          </div>
-        </div>`;
-      }).join('')}
+    <div class="row-center">
+      <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${it.inspectionAction||''}</span></div>
+      <div class="row-req"><strong>고객 요구:</strong> ${it.customerRequest||''}</div>
+      <div class="dispute-note-wrap">
+        <input class="dispute-note-input" id="note-input-${prefix}-${it.pNumber}" placeholder="이의제기 사유 메모 (선택)…"
+          onblur="saveDisputeNote('${it.pNumber}','${month}',this)" onkeydown="if(event.key==='Enter')this.blur()">
+        <div class="dispute-note-status" id="dnote-${it.pNumber}"></div>
+      </div>
+      <div class="attach-wrap">
+        <label class="attach-add-btn" for="attach-${prefix}-${it.pNumber}" title="사진 또는 영상 첨부">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l3-3 2 2 3-4 4 5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
+          사진 / 영상 첨부
+        </label>
+        <input type="file" id="attach-${prefix}-${it.pNumber}" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleAttachment('${it.pNumber}','${month}','${prefix}',this)">
+        <div class="attach-grid" id="attach-grid-${prefix}-${it.pNumber}"></div>
+        <div class="attach-progress-wrap" id="attach-prog-${prefix}-${it.pNumber}" style="display:none">
+          <div class="attach-progress-bar"><div class="attach-progress-fill" style="width:0%" id="attach-fill-${prefix}-${it.pNumber}"></div></div>
+          <div class="attach-progress-txt" id="attach-ptxt-${prefix}-${it.pNumber}">처리 중…</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-right">
+      <button class="unflag-btn" onclick="toggleFlag('${it.pNumber}','${month}',null)">해제</button>
+      <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
+      <div class="row-count">${it.bundleCount}건 묶음</div>
     </div>
   </div>`;
-
-  // 메모 + 첨부 비동기 로드
-  _loadDisputeData(items.map(i=>i.pNumber), month, prefix);
 }
 
 async function _loadDisputeData(pnums, month, prefix) {
   if (!_sb || !pnums.length) return;
   const {data} = await _sb.from('haja_flags').select('p_number,note,attachments').in('p_number', pnums).eq('month', month);
   (data||[]).forEach(f => {
-    const noteEl = document.querySelector(`#${prefix}-dispute-section .dispute-note-input[onblur*="${f.p_number}"]`);
+    const noteEl = document.getElementById(`note-input-${prefix}-${f.p_number}`);
     if (noteEl && f.note) noteEl.value = f.note;
     if (f.attachments?.length) _renderAttachGrid(f.p_number, month, prefix, f.attachments);
   });
@@ -2680,7 +2656,8 @@ function switchTab(tab) {
 }
 
 /* ── JUNE TAB ── */
-let _juneCards = [], _juneTypeFilter = null, _juneProdFilter = null, _juneLoaded = false;
+let _juneCards = [], _juneTypeFilter = null, _juneProdFilter = null, _juneLoaded = false, _juneDisputeFilter = false;
+let _analysisDisputeFilter = false, _analysisCardListHTML = '';
 
 function _extractProduct(part) {
   if (!part) return '';
@@ -2773,15 +2750,27 @@ function renderJunePanel() {
     sidebarHtml += `<div class="prod-row" data-prod="${p}" onclick="juneFilterProd('${p.replace(/'/g,"\\'")}')"><span class="prod-name">${p}</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:${Math.round(cnt/maxProd*100)}%"></div></div><span class="prod-cnt">${cnt}건</span></div>`;
   });
 
+  const disputeCount = [..._flaggedSet].filter(k=>k.endsWith('|26.06월')).length;
+  if (disputeCount > 0 || _juneDisputeFilter) {
+    sidebarHtml += `<div class="section-title">이의제기</div>
+      <div class="type-card dispute-filter-item${_juneDisputeFilter?' active':''}" onclick="juneFilterDispute()" data-dispute="june">
+        <div class="type-dot" style="background:#dc2626"></div>
+        <div class="type-info">
+          <div class="type-name" style="color:#dc2626">이의제기 목록</div>
+          <div class="type-meta"><span class="badge" style="background:#dc2626">${disputeCount}건</span></div>
+        </div>
+      </div>`;
+  }
+
   document.getElementById('june-sidebar').innerHTML = sidebarHtml;
   _renderSummaryTables(_juneCards, 'june-summary');
   juneApplyFilter();
-  renderDisputeSection('june', _juneCards, '26.06월');
 }
 
 function juneFilterType(t) {
   _juneTypeFilter = t;
   _juneProdFilter = null;
+  _juneDisputeFilter = false;
   document.getElementById('june-filter-label').textContent = t;
   document.querySelectorAll('#june-sidebar .type-card').forEach(el => el.classList.toggle('active', el.dataset.type===t));
   document.querySelectorAll('#june-sidebar .prod-row').forEach(el => el.classList.remove('active'));
@@ -2791,6 +2780,7 @@ function juneFilterType(t) {
 function juneFilterProd(p) {
   _juneProdFilter = p;
   _juneTypeFilter = null;
+  _juneDisputeFilter = false;
   document.getElementById('june-filter-label').textContent = p;
   document.querySelectorAll('#june-sidebar .prod-row').forEach(el => el.classList.toggle('active', el.dataset.prod===p));
   document.querySelectorAll('#june-sidebar .type-card').forEach(el => el.classList.remove('active'));
@@ -2800,14 +2790,44 @@ function juneFilterProd(p) {
 function juneResetAll() {
   _juneTypeFilter = null;
   _juneProdFilter = null;
+  _juneDisputeFilter = false;
   document.getElementById('june-filter-label').textContent = '';
   document.getElementById('june-search').value = '';
   document.querySelectorAll('#june-sidebar .type-card, #june-sidebar .prod-row').forEach(el => el.classList.remove('active'));
   juneApplyFilter();
 }
 
+function juneFilterDispute() {
+  _juneDisputeFilter = true;
+  _juneTypeFilter = null;
+  _juneProdFilter = null;
+  document.getElementById('june-filter-label').innerHTML = '<span class="filter-badge" style="background:#dc2626;color:#fff">이의제기 목록</span>';
+  document.querySelectorAll('#june-sidebar .type-card:not(.dispute-filter-item), #june-sidebar .prod-row').forEach(el => el.classList.remove('active'));
+  document.querySelector('#june-sidebar .dispute-filter-item')?.classList.add('active');
+  juneApplyFilter();
+}
+
 function juneApplyFilter() {
   const search = (document.getElementById('june-search')?.value||'').toLowerCase();
+
+  if (_juneDisputeFilter) {
+    const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|26.06월')).map(k=>k.split('|')[0]));
+    const byPnum = {};
+    _juneCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
+    const items = Object.keys(byPnum).map(pnum => {
+      const rows = byPnum[pnum], rep = rows[0];
+      return {pNumber:pnum, type:rep.type, customer:rep.customer, product:rep.product, part:rep.part,
+        customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
+        amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
+    }).filter(it => !search || [it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
+    document.getElementById('june-count-label').textContent = `${items.length}건`;
+    document.getElementById('june-card-list').innerHTML = items.length
+      ? items.map(it => renderDisputeCard(it,'26.06월','june')).join('')
+      : '<div style="padding:24px;color:var(--text-muted);text-align:center">이의제기 항목이 없습니다</div>';
+    if (items.length) _loadDisputeData(items.map(i=>i.pNumber),'26.06월','june');
+    return;
+  }
+
   const filtered = _juneCards.filter(c => {
     if (_juneTypeFilter && c.type !== _juneTypeFilter) return false;
     if (_juneProdFilter && c.product !== _juneProdFilter) return false;
@@ -2978,12 +2998,12 @@ async function loadAnalysisSummary() {
   _analysisLoaded = true;
   _renderSummaryTables(_analysisCards, 'analysis-summary');
   _injectAnalysisFlags();
-  renderDisputeSection('analysis', _analysisCards, '26.05월');
+  _analysisCardListHTML = document.getElementById('cardList')?.innerHTML || '';
 }
 
 function _injectAnalysisFlags() {
   document.querySelectorAll('#cardList .row-card').forEach(card => {
-    if (card.querySelector('.flag-btn')) return;
+    if (card.querySelector('.flag-btn') || card.querySelector('.unflag-btn')) return;
     const pnum = card.querySelector('.row-num')?.textContent?.trim();
     if (!pnum) return;
     const isFlagged = _flaggedSet.has(pnum+'|26.05월');
@@ -2996,6 +3016,58 @@ function _injectAnalysisFlags() {
     if (rowRight) rowRight.prepend(btn);
     if (isFlagged) card.classList.add('flagged-card');
   });
+
+  const sidebar = document.getElementById('analysis-sidebar');
+  if (!sidebar) return;
+  const disputeCount = [..._flaggedSet].filter(k=>k.endsWith('|26.05월')).length;
+  let dispItem = document.getElementById('analysis-sidebar-dispute');
+  if (disputeCount > 0 || _analysisDisputeFilter) {
+    if (!dispItem) {
+      const secTitle = document.createElement('div');
+      secTitle.className = 'section-title';
+      secTitle.id = 'analysis-sidebar-dispute-title';
+      secTitle.textContent = '이의제기';
+      sidebar.appendChild(secTitle);
+      dispItem = document.createElement('div');
+      dispItem.className = 'type-card dispute-filter-item' + (_analysisDisputeFilter ? ' active' : '');
+      dispItem.id = 'analysis-sidebar-dispute';
+      dispItem.setAttribute('onclick', 'analysisFilterDispute()');
+      dispItem.innerHTML = `<div class="type-dot" style="background:#dc2626"></div>
+        <div class="type-info">
+          <div class="type-name" style="color:#dc2626">이의제기 목록</div>
+          <div class="type-meta"><span class="badge" style="background:#dc2626">${disputeCount}건</span></div>
+        </div>`;
+      sidebar.appendChild(dispItem);
+    } else {
+      dispItem.querySelector('.badge').textContent = disputeCount+'건';
+      dispItem.classList.toggle('active', _analysisDisputeFilter);
+    }
+  } else if (dispItem) {
+    document.getElementById('analysis-sidebar-dispute-title')?.remove();
+    dispItem.remove();
+  }
+}
+
+function analysisFilterDispute() {
+  _analysisDisputeFilter = true;
+  const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|26.05월')).map(k=>k.split('|')[0]));
+  const byPnum = {};
+  _analysisCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
+  const items = Object.keys(byPnum).map(pnum => {
+    const rows = byPnum[pnum], rep = rows[0];
+    return {pNumber:pnum, type:rep.type, customer:rep.customer, product:rep.product, part:rep.part,
+      customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
+      amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
+  });
+  document.getElementById('filterLabel').innerHTML = '<span class="filter-badge" style="background:#dc2626;color:#fff">이의제기 목록</span>';
+  document.querySelectorAll('#analysis-sidebar .type-card:not(.dispute-filter-item), #analysis-sidebar .prod-row').forEach(el => el.classList.remove('active'));
+  document.getElementById('analysis-sidebar-dispute')?.classList.add('active');
+  document.getElementById('countLabel').textContent = items.length+'건';
+  document.getElementById('cardList').innerHTML = items.length
+    ? items.map(it => renderDisputeCard(it,'26.05월','analysis')).join('')
+    : '<div style="padding:24px;color:var(--text-muted);text-align:center">이의제기 항목이 없습니다</div>';
+  if (items.length) _loadDisputeData(items.map(i=>i.pNumber),'26.05월','analysis');
+  document.getElementById('typeBreakdown').innerHTML = '';
 }
 
 /* ── EXCEL DOWNLOAD ── */
