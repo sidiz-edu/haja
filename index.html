@@ -593,6 +593,26 @@ a{color:inherit;text-decoration:none}
 .qi-modal-btn{font-size:12px;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:var(--font-display);border:1px solid var(--border)}
 .qi-modal-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 .qi-modal-btn.primary:hover{opacity:.85}
+
+/* ── FLAG / DISPUTE ── */
+.flag-btn{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border-subtle);background:none;cursor:pointer;transition:all .15s;color:var(--text-tertiary);margin-left:auto;margin-bottom:8px;flex-shrink:0}
+.flag-btn:hover{border-color:#d97706;color:#d97706;background:#fffbf0}
+.flag-btn.flagged{border-color:#dc2626;color:#dc2626;background:#fff5f5}
+.row-card.flagged-card{border-left:3px solid #f87171;background:#fffafa}
+.dispute-panel{padding:var(--space-5)}
+.dispute-top{display:flex;align-items:center;margin-bottom:var(--space-4)}
+.dispute-top h2{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-primary);font-family:var(--font-kr)}
+.dispute-count-badge{margin-left:var(--space-3);font-size:11px;padding:2px 10px;border-radius:var(--radius-pill);background:#fee2e2;color:#dc2626;font-family:var(--font-display);font-weight:600}
+.dispute-empty{text-align:center;padding:80px 20px;color:var(--text-tertiary);font-family:var(--font-kr);font-size:var(--fs-sm)}
+.dispute-group-title{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:var(--tracking-wide);color:var(--text-tertiary);font-family:var(--font-display);font-weight:700;margin-bottom:var(--space-3);padding-bottom:var(--space-2);border-bottom:1px solid var(--border-subtle);margin-top:var(--space-5)}
+.dispute-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid #fecaca;padding:var(--space-4) var(--space-5);margin-bottom:var(--space-3);display:flex;gap:var(--space-5);align-items:flex-start}
+.dispute-card:hover{box-shadow:var(--shadow-md)}
+.unflag-btn{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #fca5a5;background:#fff5f5;color:#dc2626;cursor:pointer;font-family:var(--font-kr);transition:all .15s;white-space:nowrap;margin-bottom:6px;display:block;margin-left:auto}
+.unflag-btn:hover{background:#fee2e2;border-color:#ef4444}
+.dispute-note-wrap{margin-top:8px}
+.dispute-note-input{width:100%;font-size:var(--fs-xs);font-family:var(--font-kr);border:1px dashed var(--border-default);border-radius:4px;padding:4px 8px;outline:none;background:var(--bg-subtle);color:var(--text-primary);letter-spacing:var(--tracking-kr)}
+.dispute-note-input:focus{border-color:var(--accent);border-style:solid;background:#fff}
+.dispute-note-status{font-size:10px;color:var(--text-tertiary);margin-top:2px;font-family:var(--font-display)}
 </style>
 </head>
 <body>
@@ -631,6 +651,7 @@ a{color:inherit;text-decoration:none}
   <button class="tab-btn" onclick="switchTab('june')">26.06월</button>
   <button class="tab-btn" onclick="switchTab('quality')">주요항목</button>
   <button class="tab-btn" onclick="switchTab('guide')">조치내역 작성 방법</button>
+  <button class="tab-btn" onclick="switchTab('dispute')" id="tab-dispute">이의제기 목록</button>
 </div>
 
 <!-- MEMO MODAL -->
@@ -2093,6 +2114,17 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- DISPUTE PANEL -->
+<div id="panel-dispute" class="panel">
+  <div class="dispute-panel">
+    <div class="dispute-top">
+      <h2>이의제기 목록</h2>
+      <span id="dispute-count-badge" class="dispute-count-badge" style="display:none"></span>
+    </div>
+    <div id="dispute-list"><div class="dispute-empty">로딩 중…</div></div>
+  </div>
+</div>
+
 <!-- GUIDE PANEL -->
 <div id="panel-guide" class="panel">
   <div class="qi-panel">
@@ -2341,11 +2373,187 @@ function startTitleEdit() {
   input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape') { input.value=cur; input.blur(); } });
 }
 
+/* ── FLAGS (이의제기) ── */
+let _flaggedSet = new Set(), _flagsLoaded = false;
+
+async function _ensureFlags() {
+  if (!_sb || _flagsLoaded) return;
+  const {data} = await _sb.from('haja_flags').select('p_number,month');
+  _flaggedSet = new Set((data||[]).map(f => f.p_number+'|'+f.month));
+  _flagsLoaded = true;
+  const cnt = _flaggedSet.size;
+  const badge = document.getElementById('dispute-count-badge');
+  const tabBtn = document.getElementById('tab-dispute');
+  if (badge) { badge.dataset.count = cnt; if (cnt>0){badge.textContent=cnt+'건';badge.style.display='';} }
+  if (tabBtn && cnt>0) tabBtn.textContent = `이의제기 목록 (${cnt})`;
+}
+
+async function toggleFlag(pNumber, month, btn) {
+  if (!_sb) return;
+  const key = pNumber+'|'+month;
+  btn.disabled = true;
+  if (_flaggedSet.has(key)) {
+    await _sb.from('haja_flags').delete().eq('p_number', pNumber).eq('month', month);
+    _flaggedSet.delete(key);
+  } else {
+    await _sb.from('haja_flags').insert({p_number: pNumber, month});
+    _flaggedSet.add(key);
+  }
+  btn.disabled = false;
+  const flagged = _flaggedSet.has(key);
+  btn.className = 'flag-btn' + (flagged ? ' flagged' : '');
+  btn.title = flagged ? '이의제기 해제' : '이의제기 표시';
+  btn.querySelector('svg').setAttribute('fill', flagged ? 'currentColor' : 'none');
+  const card = btn.closest('.row-card');
+  if (card) card.classList.toggle('flagged-card', flagged);
+  // update dispute tab badge
+  _updateDisputeBadge(flagged ? 1 : -1);
+}
+
+function _updateDisputeBadge(delta) {
+  const badge = document.getElementById('dispute-count-badge');
+  const tabBtn = document.getElementById('tab-dispute');
+  if (!badge) return;
+  const cur = parseInt(badge.dataset.count||'0') + delta;
+  badge.dataset.count = cur;
+  if (cur > 0) {
+    badge.style.display = '';
+    badge.textContent = cur + '건';
+    if (tabBtn) tabBtn.textContent = `이의제기 목록 (${cur})`;
+  } else {
+    badge.style.display = 'none';
+    if (tabBtn) tabBtn.textContent = '이의제기 목록';
+  }
+}
+
+async function loadDisputePanel() {
+  if (!_sb) return;
+  _flagsLoaded = false; // 항상 최신 데이터
+  await _ensureFlags();
+  const listEl = document.getElementById('dispute-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="dispute-empty">로딩 중…</div>';
+
+  const {data: flags} = await _sb.from('haja_flags').select('*').order('created_at', {ascending: true});
+  if (!flags || !flags.length) {
+    listEl.innerHTML = '<div class="dispute-empty">이의제기로 체크된 항목이 없습니다.<br>각 월 탭의 카드에서 🚩 버튼을 눌러 추가하세요.</div>';
+    const badge = document.getElementById('dispute-count-badge');
+    if (badge) { badge.style.display='none'; badge.dataset.count='0'; }
+    document.getElementById('tab-dispute').textContent = '이의제기 목록';
+    return;
+  }
+
+  // 카드 데이터 로드
+  const pnums = [...new Set(flags.map(f => f.p_number))];
+  const {data: cards} = await _sb.from('haja_as_cards').select('*').in('p_number', pnums);
+  const allCards = cards || [];
+
+  // 월별 그룹
+  const byMonth = {};
+  flags.forEach(f => {
+    if (!byMonth[f.month]) byMonth[f.month] = [];
+    const mc = allCards.filter(c => c.p_number === f.p_number && c.month === f.month);
+    if (!mc.length) return;
+    const rep = mc[0];
+    const totalAmt = mc.reduce((s,c)=>s+(c.amount||0),0);
+    byMonth[f.month].push({pNumber: f.p_number, month: f.month, flagId: f.id, note: f.note||'',
+      type: rep.type, customer: rep.customer, product: rep.product, part: rep.part,
+      customerRequest: rep.customer_request, inspectionAction: rep.inspection_action,
+      amount: totalAmt, bundleCount: mc.length});
+  });
+
+  const totalCount = flags.length;
+  const badge = document.getElementById('dispute-count-badge');
+  if (badge) { badge.textContent = totalCount+'건'; badge.style.display=''; badge.dataset.count=totalCount; }
+  document.getElementById('tab-dispute').textContent = `이의제기 목록 (${totalCount})`;
+
+  const months = Object.keys(byMonth).sort();
+  listEl.innerHTML = months.map(m => {
+    const items = byMonth[m];
+    const cards = items.map(it => {
+      const col = TYPE_COLORS[it.type] || '#ABAEB1';
+      return `<div class="dispute-card" id="dispute-card-${it.pNumber}">
+        <div class="row-left">
+          <span class="tag" style="background:${col}">${it.type||''}</span>
+          <div class="row-num">${it.pNumber}</div>
+          <div class="row-customer">${it.customer||''}</div>
+          <div class="row-prod" style="font-size:var(--fs-xs);color:var(--text-secondary);margin-top:4px;font-family:var(--font-display);text-transform:uppercase;letter-spacing:var(--tracking-wide)">${it.product||''}</div>
+          <div class="row-part" style="margin-top:4px">부위: ${it.part||''}</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${it.inspectionAction||''}</span></div>
+          <div class="row-req"><strong>고객 요구:</strong> ${it.customerRequest||''}</div>
+          <div class="dispute-note-wrap">
+            <input class="dispute-note-input" placeholder="이의제기 사유 메모 (선택)…" value="${(it.note||'').replace(/"/g,'&quot;')}"
+              onblur="saveDisputeNote('${it.pNumber}','${m}',this)" onkeydown="if(event.key==='Enter')this.blur()">
+            <div class="dispute-note-status" id="dispute-note-status-${it.pNumber}"></div>
+          </div>
+        </div>
+        <div class="row-right">
+          <button class="unflag-btn" onclick="unflagCard('${it.pNumber}','${m}',this)">해제</button>
+          <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
+          <div class="row-count">${it.bundleCount}건 묶음</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="dispute-month-group">
+      <div class="dispute-group-title">${m} — ${items.length}건</div>
+      ${cards}
+    </div>`;
+  }).join('');
+}
+
+async function saveDisputeNote(pNumber, month, input) {
+  if (!_sb) return;
+  const statusEl = document.getElementById('dispute-note-status-'+pNumber);
+  if (statusEl) statusEl.textContent = '저장 중…';
+  const {error} = await _sb.from('haja_flags').update({note: input.value}).eq('p_number', pNumber).eq('month', month);
+  if (statusEl) { statusEl.textContent = error ? '오류' : '저장됨 ✓'; setTimeout(()=>{ statusEl.textContent=''; },1500); }
+}
+
+async function unflagCard(pNumber, month, btn) {
+  if (!_sb) return;
+  btn.disabled = true;
+  const {error} = await _sb.from('haja_flags').delete().eq('p_number', pNumber).eq('month', month);
+  if (!error) {
+    _flaggedSet.delete(pNumber+'|'+month);
+    // 패널에서 카드 제거
+    const card = document.getElementById('dispute-card-'+pNumber);
+    if (card) card.remove();
+    _updateDisputeBadge(-1);
+    // 월 그룹이 비면 그룹도 제거
+    document.querySelectorAll('.dispute-month-group').forEach(g => {
+      if (!g.querySelector('.dispute-card')) g.remove();
+    });
+    if (!document.querySelector('.dispute-card')) {
+      document.getElementById('dispute-list').innerHTML = '<div class="dispute-empty">이의제기로 체크된 항목이 없습니다.</div>';
+    }
+    // 다른 탭 카드에서도 플래그 해제 반영
+    const junCard = document.querySelector(`#june-card-list .row-card .flag-btn`);
+    document.querySelectorAll('#june-card-list .row-card').forEach(rc => {
+      const numEl = rc.querySelector('.row-num');
+      if (numEl && numEl.textContent.trim() === pNumber) {
+        rc.classList.remove('flagged-card');
+        const fb = rc.querySelector('.flag-btn');
+        if (fb) { fb.className='flag-btn'; fb.title='이의제기 표시'; fb.querySelector('svg')?.setAttribute('fill','none'); }
+      }
+    });
+    document.querySelectorAll('#cardList .row-card').forEach(rc => {
+      const numEl = rc.querySelector('.row-num');
+      if (numEl && numEl.textContent.trim() === pNumber) {
+        rc.classList.remove('flagged-card');
+        const fb = rc.querySelector('.flag-btn');
+        if (fb) { fb.className='flag-btn'; fb.title='이의제기 표시'; fb.querySelector('svg')?.setAttribute('fill','none'); }
+      }
+    });
+  } else { btn.disabled = false; }
+}
+
 /* ── TAB SWITCHING ── */
 function switchTab(tab) {
-  const tabs = ['analysis','june','quality','guide'];
+  const tabs = ['analysis','june','quality','guide','dispute'];
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
-  ['analysis','june','quality','guide'].forEach(id => {
+  ['analysis','june','quality','guide','dispute'].forEach(id => {
     const el = document.getElementById('panel-'+id);
     if (el) el.classList.toggle('active', id===tab);
   });
@@ -2353,6 +2561,7 @@ function switchTab(tab) {
   if (tab==='june') loadJuneData();
   if (tab==='quality') loadQiIssues();
   if (tab==='guide') loadGuide();
+  if (tab==='dispute') loadDisputePanel();
 }
 
 /* ── JUNE TAB ── */
@@ -2375,7 +2584,8 @@ function _extractProduct(part) {
 
 async function loadJuneData() {
   if (!_sb) return;
-  if (_juneLoaded) { renderJunePanel(); return; }
+  if (_juneLoaded) { await _ensureFlags(); renderJunePanel(); return; }
+  await _ensureFlags();
   const {data} = await _sb.from('haja_as_cards').select('*').eq('month','26.06월').order('type');
   _juneCards = data || [];
 
@@ -2494,7 +2704,8 @@ function juneApplyFilter() {
     const prodInner = c.product
       ? `<span class="june-prod-txt" onclick="juneShowProdEdit('${c.id}','${c.product}')" title="클릭하여 변경">${c.product} <span class="june-edit-hint">✎</span></span>`
       : _juneProdSelect(c.id, '');
-    return `<div class="row-card" data-type="${c.type||''}" data-prod="${c.product||''}" id="june-card-${c.id}">
+    const isFlagged = _flaggedSet.has(c.p_number+'|26.06월');
+    return `<div class="row-card${isFlagged?' flagged-card':''}" data-type="${c.type||''}" data-prod="${c.product||''}" id="june-card-${c.id}">
       <div class="row-left">
         <span class="tag" style="background:${col}">${c.type||''}</span>
         <div class="row-num">${c.p_number||''}</div>
@@ -2507,6 +2718,9 @@ function juneApplyFilter() {
         <div class="row-req"><strong>고객 요구:</strong> ${c.customer_request||''}</div>
       </div>
       <div class="row-right">
+        <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag('${c.p_number}','26.06월',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
+          <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
+        </button>
         <div class="row-amount">${(c.amount||0).toLocaleString()}<span>원</span></div>
         <div class="row-count">${c.bundle_count||'1건'} 묶음</div>
       </div>
@@ -2641,11 +2855,30 @@ function _renderSummaryTables(cards, targetId) {
 let _analysisCards = [], _analysisLoaded = false;
 async function loadAnalysisSummary() {
   if (!_sb) return;
-  if (_analysisLoaded) return;
+  await _ensureFlags();
+  if (_analysisLoaded) { _injectAnalysisFlags(); return; }
   const {data} = await _sb.from('haja_as_cards').select('*').eq('month','26.05월');
   _analysisCards = data || [];
   _analysisLoaded = true;
   _renderSummaryTables(_analysisCards, 'analysis-summary');
+  _injectAnalysisFlags();
+}
+
+function _injectAnalysisFlags() {
+  document.querySelectorAll('#cardList .row-card').forEach(card => {
+    if (card.querySelector('.flag-btn')) return;
+    const pnum = card.querySelector('.row-num')?.textContent?.trim();
+    if (!pnum) return;
+    const isFlagged = _flaggedSet.has(pnum+'|26.05월');
+    const btn = document.createElement('button');
+    btn.className = 'flag-btn' + (isFlagged ? ' flagged' : '');
+    btn.title = isFlagged ? '이의제기 해제' : '이의제기 표시';
+    btn.innerHTML = `<svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>`;
+    btn.onclick = () => toggleFlag(pnum, '26.05월', btn);
+    const rowRight = card.querySelector('.row-right');
+    if (rowRight) rowRight.prepend(btn);
+    if (isFlagged) card.classList.add('flagged-card');
+  });
 }
 
 /* ── EXCEL DOWNLOAD ── */
