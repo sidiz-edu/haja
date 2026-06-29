@@ -613,6 +613,21 @@ a{color:inherit;text-decoration:none}
 .dispute-note-input{width:100%;font-size:var(--fs-xs);font-family:var(--font-kr);border:1px dashed var(--border-default);border-radius:4px;padding:4px 8px;outline:none;background:var(--bg-subtle);color:var(--text-primary);letter-spacing:var(--tracking-kr)}
 .dispute-note-input:focus{border-color:var(--accent);border-style:solid;background:#fff}
 .dispute-note-status{font-size:10px;color:var(--text-tertiary);margin-top:2px;font-family:var(--font-display)}
+/* ── ATTACHMENTS ── */
+.attach-wrap{margin-top:10px;border-top:1px dashed var(--border-subtle);padding-top:8px}
+.attach-add-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:6px;border:1px dashed var(--border-default);background:none;color:var(--text-secondary);cursor:pointer;font-family:var(--font-kr);transition:all .15s}
+.attach-add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.attach-add-btn svg{width:13px;height:13px;flex-shrink:0}
+.attach-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.attach-thumb{position:relative;width:80px;height:80px;border-radius:6px;overflow:hidden;border:1px solid var(--border-subtle);background:var(--bg-subtle);flex-shrink:0}
+.attach-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer}
+.attach-thumb video{width:100%;height:100%;object-fit:cover}
+.attach-del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+.attach-del:hover{background:rgba(180,0,0,.8)}
+.attach-progress-wrap{margin-top:6px}
+.attach-progress-bar{height:4px;background:var(--gray-200);border-radius:2px;overflow:hidden;margin-bottom:3px}
+.attach-progress-fill{height:100%;background:var(--blue);border-radius:2px;transition:width .2s}
+.attach-progress-txt{font-size:10px;color:var(--text-tertiary);font-family:var(--font-display)}
 </style>
 </head>
 <body>
@@ -2452,6 +2467,18 @@ function renderDisputeSection(prefix, cards, month) {
               <div class="dispute-note-status" id="dnote-${it.pNumber}"></div>
             </div>
           </div>
+          <div class="attach-wrap">
+            <label class="attach-add-btn" for="attach-${prefix}-${it.pNumber}" title="사진 또는 영상 첨부">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l3-3 2 2 3-4 4 5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
+              사진 / 영상 첨부
+            </label>
+            <input type="file" id="attach-${prefix}-${it.pNumber}" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleAttachment('${it.pNumber}','${month}','${prefix}',this)">
+            <div class="attach-grid" id="attach-grid-${prefix}-${it.pNumber}"></div>
+            <div class="attach-progress-wrap" id="attach-prog-${prefix}-${it.pNumber}" style="display:none">
+              <div class="attach-progress-bar"><div class="attach-progress-fill" style="width:0%" id="attach-fill-${prefix}-${it.pNumber}"></div></div>
+              <div class="attach-progress-txt" id="attach-ptxt-${prefix}-${it.pNumber}">처리 중…</div>
+            </div>
+          </div>
           <div class="row-right">
             <button class="unflag-btn" onclick="toggleFlag('${it.pNumber}','${month}',null)">해제</button>
             <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
@@ -2462,17 +2489,168 @@ function renderDisputeSection(prefix, cards, month) {
     </div>
   </div>`;
 
-  // 메모 값 비동기 로드
-  _loadDisputeNotes(items.map(i=>i.pNumber), month, prefix);
+  // 메모 + 첨부 비동기 로드
+  _loadDisputeData(items.map(i=>i.pNumber), month, prefix);
 }
 
-async function _loadDisputeNotes(pnums, month, prefix) {
+async function _loadDisputeData(pnums, month, prefix) {
   if (!_sb || !pnums.length) return;
-  const {data} = await _sb.from('haja_flags').select('p_number,note').in('p_number', pnums).eq('month', month);
+  const {data} = await _sb.from('haja_flags').select('p_number,note,attachments').in('p_number', pnums).eq('month', month);
   (data||[]).forEach(f => {
-    const el = document.querySelector(`#${prefix}-dispute-section .dispute-note-input[onblur*="${f.p_number}"]`);
-    if (el && f.note) el.value = f.note;
+    const noteEl = document.querySelector(`#${prefix}-dispute-section .dispute-note-input[onblur*="${f.p_number}"]`);
+    if (noteEl && f.note) noteEl.value = f.note;
+    if (f.attachments?.length) _renderAttachGrid(f.p_number, month, prefix, f.attachments);
   });
+}
+
+function _renderAttachGrid(pNumber, month, prefix, urls) {
+  const grid = document.getElementById(`attach-grid-${prefix}-${pNumber}`);
+  if (!grid) return;
+  grid.innerHTML = (urls||[]).map((url, i) => {
+    const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+    const thumb = isVideo
+      ? `<video src="${url}" preload="none" onclick="this.paused?this.play():this.pause()" style="cursor:pointer"></video>`
+      : `<img src="${url}" onclick="window.open('${url}','_blank')" alt="첨부 이미지">`;
+    return `<div class="attach-thumb">
+      ${thumb}
+      <button class="attach-del" onclick="deleteAttachment('${pNumber}','${month}','${prefix}',${i})" title="삭제">✕</button>
+    </div>`;
+  }).join('');
+}
+
+/* ── FFMPEG (lazy load) ── */
+let _ffmpegReady = false, _ffmpegFailed = false, _ffmpeg = null, _fetchFile = null;
+
+async function _ensureFFmpeg() {
+  if (_ffmpegReady) return true;
+  if (_ffmpegFailed) return false;
+  try {
+    const mod = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/esm/ffmpeg.js');
+    const util = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js');
+    _ffmpeg = new mod.FFmpeg();
+    _fetchFile = util.fetchFile;
+    await _ffmpeg.load({
+      coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+      wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
+    });
+    _ffmpegReady = true;
+    return true;
+  } catch(e) {
+    console.warn('FFmpeg 로드 실패 — 원본 업로드로 전환:', e);
+    _ffmpegFailed = true;
+    return false;
+  }
+}
+
+async function _compressImage(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1920;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      c.toBlob(resolve, 'image/jpeg', 0.82);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function _compressVideo(file, onProgress) {
+  const ok = await _ensureFFmpeg();
+  if (!ok) {
+    if (file.size > 50 * 1024 * 1024) throw new Error('영상 크기가 50MB를 초과합니다. 짧게 잘라서 다시 시도해주세요.');
+    return file;
+  }
+  const inName = 'in_' + Date.now() + '.mp4';
+  _ffmpeg.on('progress', ({progress}) => onProgress(Math.min(99, Math.round(progress * 100))));
+  await _ffmpeg.writeFile(inName, await _fetchFile(file));
+  await _ffmpeg.exec([
+    '-i', inName,
+    '-vf', 'scale=1280:-2',
+    '-c:v', 'libx264', '-crf', '28', '-preset', 'fast',
+    '-c:a', 'aac', '-b:a', '96k',
+    '-movflags', '+faststart',
+    '-y', 'out.mp4'
+  ]);
+  const data = await _ffmpeg.readFile('out.mp4');
+  await _ffmpeg.deleteFile(inName).catch(()=>{});
+  await _ffmpeg.deleteFile('out.mp4').catch(()=>{});
+  _ffmpeg.off('progress');
+  return new Blob([data.buffer], {type: 'video/mp4'});
+}
+
+async function handleAttachment(pNumber, month, prefix, input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const progWrap = document.getElementById(`attach-prog-${prefix}-${pNumber}`);
+  const fill = document.getElementById(`attach-fill-${prefix}-${pNumber}`);
+  const ptxt = document.getElementById(`attach-ptxt-${prefix}-${pNumber}`);
+
+  const setProgress = (pct, msg) => {
+    if (!progWrap) return;
+    progWrap.style.display = '';
+    if (fill) fill.style.width = pct + '%';
+    if (ptxt) ptxt.textContent = msg;
+  };
+
+  try {
+    let blob;
+    const isVideo = file.type.startsWith('video/');
+
+    if (isVideo) {
+      setProgress(5, 'FFmpeg 로드 중…');
+      const ffmpegOk = await _ensureFFmpeg();
+      setProgress(10, ffmpegOk ? '영상 압축 중… (시간이 걸릴 수 있어요)' : '업로드 중…');
+      blob = await _compressVideo(file, p => setProgress(10 + Math.round(p * 0.7), `압축 중… ${p}%`));
+    } else {
+      setProgress(10, '이미지 압축 중…');
+      blob = await _compressImage(file);
+    }
+
+    setProgress(85, '업로드 중…');
+    const ext = isVideo ? 'mp4' : 'jpg';
+    const path = `dispute/${month}/${pNumber}/${Date.now()}.${ext}`;
+    const {error: upErr} = await _sb.storage.from('haja-attachments').upload(path, blob, {contentType: blob.type || (isVideo?'video/mp4':'image/jpeg')});
+    if (upErr) throw upErr;
+
+    const {data: urlData} = _sb.storage.from('haja-attachments').getPublicUrl(path);
+    const url = urlData.publicUrl;
+
+    setProgress(95, 'DB 저장 중…');
+    const {data: flagRow} = await _sb.from('haja_flags').select('attachments').eq('p_number', pNumber).eq('month', month).single();
+    const existing = flagRow?.attachments || [];
+    await _sb.from('haja_flags').update({attachments: [...existing, url]}).eq('p_number', pNumber).eq('month', month);
+
+    setProgress(100, '완료!');
+    setTimeout(() => { if (progWrap) progWrap.style.display = 'none'; }, 1200);
+
+    const {data: fresh} = await _sb.from('haja_flags').select('attachments').eq('p_number', pNumber).eq('month', month).single();
+    _renderAttachGrid(pNumber, month, prefix, fresh?.attachments || []);
+
+  } catch(e) {
+    if (progWrap) progWrap.style.display = 'none';
+    alert('첨부 실패: ' + e.message);
+  }
+}
+
+async function deleteAttachment(pNumber, month, prefix, idx) {
+  if (!confirm('첨부 파일을 삭제할까요?')) return;
+  const {data: flagRow} = await _sb.from('haja_flags').select('attachments').eq('p_number', pNumber).eq('month', month).single();
+  const urls = [...(flagRow?.attachments || [])];
+  const url = urls[idx];
+  urls.splice(idx, 1);
+  await _sb.from('haja_flags').update({attachments: urls}).eq('p_number', pNumber).eq('month', month);
+  // Storage 파일도 삭제 (path 추출)
+  try {
+    const pathMatch = url.match(/haja-attachments\/(.+)$/);
+    if (pathMatch) await _sb.storage.from('haja-attachments').remove([pathMatch[1]]);
+  } catch(e) {}
+  _renderAttachGrid(pNumber, month, prefix, urls);
 }
 
 async function saveDisputeNote(pNumber, month, input) {
