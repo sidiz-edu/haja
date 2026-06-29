@@ -2662,6 +2662,49 @@ function _getCurrentMonth() {
   return null;
 }
 
+function _buildSummaryAOA(rows) {
+  const prods = {}, types = {};
+  rows.forEach(r => {
+    const p = r.product || '미입력';
+    if (!prods[p]) prods[p] = {pNums: new Set(), count: 0, amount: 0};
+    prods[p].pNums.add(r.p_number);
+    prods[p].count++;
+    prods[p].amount += (r.amount || 0);
+    const t = r.type || '미분류';
+    if (!types[t]) types[t] = {count: 0, amount: 0};
+    types[t].count++;
+    types[t].amount += (r.amount || 0);
+  });
+  const totalAmt = rows.reduce((s,r) => s+(r.amount||0), 0);
+  const totalCnt = rows.length;
+  const typeOrder = ['A','B','C','D','E','F','G','H','I','J','K'];
+
+  const prodAOA = [
+    ['제품명','접수번호(고유)','전체건수','합계금액(원)'],
+    ...Object.entries(prods).sort((a,b)=>b[1].amount-a[1].amount)
+      .map(([n,{pNums,count,amount}])=>[n, pNums.size, count, amount]),
+    ['총합계','—', totalCnt, totalAmt]
+  ];
+  const typeAOA = [
+    ['하자유형','건수','금액(원)','비율(%)'],
+    ...Object.entries(types)
+      .sort((a,b)=>typeOrder.findIndex(x=>a[0].startsWith(x+'.')) - typeOrder.findIndex(x=>b[0].startsWith(x+'.')))
+      .map(([n,{count,amount}])=>[n, count, amount, totalAmt ? parseFloat((amount/totalAmt*100).toFixed(1)) : 0]),
+    ['총합계', totalCnt, totalAmt, 100]
+  ];
+  return {prodAOA, typeAOA};
+}
+
+function _appendSummarySheets(wb, rows, prefix) {
+  const {prodAOA, typeAOA} = _buildSummaryAOA(rows);
+  const wsProd = XLSX.utils.aoa_to_sheet(prodAOA);
+  wsProd['!cols'] = [{wch:12},{wch:14},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsProd, prefix+'_제품별');
+  const wsType = XLSX.utils.aoa_to_sheet(typeAOA);
+  wsType['!cols'] = [{wch:28},{wch:8},{wch:14},{wch:8}];
+  XLSX.utils.book_append_sheet(wb, wsType, prefix+'_유형별');
+}
+
 async function downloadExcel(scope) {
   closeDlMenu();
   if (!window.XLSX) { alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.'); return; }
@@ -2674,7 +2717,6 @@ async function downloadExcel(scope) {
   function makeSheet(rows) {
     const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows.map(r => FIELDS.map(f => r[f] ?? ''))]);
     ws['!cols'] = COL_W;
-    ws['!freeze'] = {xSplit:0, ySplit:1};
     return ws;
   }
 
@@ -2684,24 +2726,32 @@ async function downloadExcel(scope) {
     const {data} = await _sb.from('haja_as_cards').select('*').order('month').order('type');
     const rows = data || [];
     const months = [...new Set(rows.map(r=>r.month))].sort();
-    months.forEach(m => XLSX.utils.book_append_sheet(wb, makeSheet(rows.filter(r=>r.month===m)), m));
 
-    const summary = [['월','총 건수','총 금액(원)','건당 평균(원)'],
+    const summaryAOA = [['월','총 건수','총 금액(원)','건당 평균(원)'],
       ...months.map(m => {
         const mr = rows.filter(r=>r.month===m);
         const amt = mr.reduce((s,r)=>s+(r.amount||0),0);
         return [m, mr.length, amt, mr.length ? Math.round(amt/mr.length) : 0];
       })];
-    const ws = XLSX.utils.aoa_to_sheet(summary);
-    ws['!cols'] = [{wch:10},{wch:10},{wch:14},{wch:14}];
-    XLSX.utils.book_append_sheet(wb, ws, '월별 요약');
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryAOA);
+    wsSummary['!cols'] = [{wch:10},{wch:10},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, wsSummary, '월별 요약');
+
+    months.forEach(m => {
+      const mr = rows.filter(r=>r.month===m);
+      XLSX.utils.book_append_sheet(wb, makeSheet(mr), m);
+      _appendSummarySheets(wb, mr, m);
+    });
+
     XLSX.writeFile(wb, '하자보수비_전체.xlsx');
 
   } else {
     const month = _getCurrentMonth();
     if (!month) { alert('26.05월 또는 26.06월 탭에서 실행해주세요.'); return; }
     const {data} = await _sb.from('haja_as_cards').select('*').eq('month', month).order('type');
-    XLSX.utils.book_append_sheet(wb, makeSheet(data || []), month);
+    const rows = data || [];
+    XLSX.utils.book_append_sheet(wb, makeSheet(rows), month);
+    _appendSummarySheets(wb, rows, month);
     XLSX.writeFile(wb, `하자보수비_${month}.xlsx`);
   }
 }
