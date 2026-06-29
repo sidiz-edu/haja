@@ -2602,6 +2602,10 @@ async function handleAttachment(pNumber, month, prefix, input) {
     let blob;
     const isVideo = file.type.startsWith('video/');
 
+    if (isVideo && file.size > 500 * 1024 * 1024) {
+      throw new Error('영상 파일이 500MB를 초과합니다. 짧게 잘라서 다시 시도해주세요.');
+    }
+
     if (isVideo) {
       setProgress(5, 'FFmpeg 로드 중…');
       const ffmpegOk = await _ensureFFmpeg();
