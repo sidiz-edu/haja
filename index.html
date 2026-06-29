@@ -2463,7 +2463,7 @@ function renderDisputeCard(it, month, prefix) {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l3-3 2 2 3-4 4 5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
           사진 / 영상 첨부
         </label>
-        <input type="file" id="attach-${prefix}-${it.pNumber}" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleAttachment('${it.pNumber}','${month}','${prefix}',this)">
+        <input type="file" id="attach-${prefix}-${it.pNumber}" accept="image/*,video/mp4,video/webm,video/quicktime,.mov,.mp4,.webm" style="display:none" onchange="handleAttachment('${it.pNumber}','${month}','${prefix}',this)">
         <div class="attach-grid" id="attach-grid-${prefix}-${it.pNumber}"></div>
         <div class="attach-progress-wrap" id="attach-prog-${prefix}-${it.pNumber}" style="display:none">
           <div class="attach-progress-bar"><div class="attach-progress-fill" style="width:0%" id="attach-fill-${prefix}-${it.pNumber}"></div></div>
@@ -2589,7 +2589,8 @@ async function _compressImage(file) {
 async function _compressVideo(file, onProgress) {
   const ok = await _ensureFFmpeg();
   if (!ok) return file;
-  const inName = 'in_' + Date.now() + '.mp4';
+  const inExt = file.type === 'video/quicktime' ? 'mov' : file.type === 'video/webm' ? 'webm' : 'mp4';
+  const inName = 'in_' + Date.now() + '.' + inExt;
   _ffmpeg.on('progress', ({progress}) => onProgress(Math.min(99, Math.round(progress * 100))));
   await _ffmpeg.writeFile(inName, await _fetchFile(file));
   await _ffmpeg.exec([
