@@ -3191,13 +3191,42 @@ async function downloadExcel(scope) {
   if (!window.XLSX) { alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.'); return; }
   if (!_sb) return;
 
-  const HEADERS = ['월','하자유형','접수번호','제품','고객명','부품명','고객 요구내역','점검 조치내역','금액(원)','건수'];
-  const FIELDS  = ['month','type','p_number','product','customer','part','customer_request','inspection_action','amount','bundle_count'];
-  const COL_W   = [8,22,16,8,10,20,35,35,12,8].map(w=>({wch:w}));
+  const HEADERS = ['월','하자유형','접수번호','제품','고객명','서비스팀','부품명','고객 요구내역','점검 조치내역','금액(원)','건수'];
+  const FIELDS  = ['month','type','p_number','product','customer','visit_team','part','customer_request','inspection_action','amount','bundle_count'];
+  const COL_W   = [8,22,16,8,10,14,20,35,35,12,8].map(w=>({wch:w}));
+
+  const D_HEADERS = ['월','하자유형','접수번호','제품','고객명','서비스팀','부품명','고객 요구내역','점검 조치내역','금액(원)','건수','이의제기 메모'];
+  const D_COL_W   = [8,22,16,8,10,14,20,35,35,12,8,30].map(w=>({wch:w}));
 
   function makeSheet(rows) {
     const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows.map(r => FIELDS.map(f => r[f] ?? ''))]);
     ws['!cols'] = COL_W;
+    return ws;
+  }
+
+  async function makeDisputeSheet(cardRows, months) {
+    const {data: flags} = await _sb.from('haja_flags').select('p_number,month,note')
+      .in('month', months);
+    if (!flags?.length) return null;
+
+    const byPnumMonth = {};
+    cardRows.forEach(c => {
+      const key = c.p_number + '|' + c.month;
+      (byPnumMonth[key] = byPnumMonth[key] || []).push(c);
+    });
+
+    const disputeRows = flags.map(f => {
+      const key = f.p_number + '|' + f.month;
+      const cards = byPnumMonth[key] || [];
+      const rep = cards[0] || {};
+      const amt = cards.reduce((s,c) => s + (c.amount||0), 0);
+      return [f.month, rep.type||'', f.p_number, rep.product||'', rep.customer||'',
+        rep.visit_team||'', rep.part||'', rep.customer_request||'', rep.inspection_action||'',
+        amt, cards.length || '', f.note||''];
+    }).sort((a,b) => (a[0]||'').localeCompare(b[0]||'') || (a[2]||'').localeCompare(b[2]||''));
+
+    const ws = XLSX.utils.aoa_to_sheet([D_HEADERS, ...disputeRows]);
+    ws['!cols'] = D_COL_W;
     return ws;
   }
 
@@ -3224,6 +3253,9 @@ async function downloadExcel(scope) {
       _appendSummarySheets(wb, mr, m);
     });
 
+    const wsDispute = await makeDisputeSheet(rows, months);
+    if (wsDispute) XLSX.utils.book_append_sheet(wb, wsDispute, '이의제기');
+
     XLSX.writeFile(wb, '하자보수비_전체.xlsx');
 
   } else {
@@ -3233,6 +3265,10 @@ async function downloadExcel(scope) {
     const rows = data || [];
     XLSX.utils.book_append_sheet(wb, makeSheet(rows), month);
     _appendSummarySheets(wb, rows, month);
+
+    const wsDispute = await makeDisputeSheet(rows, [month]);
+    if (wsDispute) XLSX.utils.book_append_sheet(wb, wsDispute, '이의제기');
+
     XLSX.writeFile(wb, `하자보수비_${month}.xlsx`);
   }
 }
