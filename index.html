@@ -619,6 +619,10 @@ a{color:inherit;text-decoration:none}
 .dispute-result-btn.fail.active{background:#fee2e2;border-color:#fca5a5;color:#dc2626;font-weight:600}
 .dispute-result-btn:hover:not(.active){background:var(--gray-100)}
 .dispute-result-sub{font-size:10px;color:var(--text-tertiary);margin-top:2px;font-family:var(--font-kr)}
+.dispute-reason-wrap{margin-top:6px}
+.dispute-reason-input{width:100%;font-size:10px;font-family:var(--font-kr);border:1px dashed var(--border-default);border-radius:4px;padding:3px 7px;outline:none;background:var(--bg-subtle);color:var(--text-secondary);letter-spacing:var(--tracking-kr);resize:none;line-height:1.5}
+.dispute-reason-input:focus{border-color:#9ca3af;border-style:solid;background:#fff;color:var(--text-primary)}
+.dispute-reason-label{font-size:9px;color:var(--text-tertiary);font-family:var(--font-kr);margin-bottom:2px;display:block}
 .dispute-note-wrap{margin-top:8px}
 .dispute-note-input{width:100%;font-size:var(--fs-xs);font-family:var(--font-kr);border:1px dashed var(--border-default);border-radius:4px;padding:4px 8px;outline:none;background:var(--bg-subtle);color:var(--text-primary);letter-spacing:var(--tracking-kr)}
 .dispute-note-input:focus{border-color:var(--accent);border-style:solid;background:#fff}
@@ -2497,6 +2501,11 @@ function renderDisputeCard(it, month, prefix) {
         <button class="dispute-result-btn pass" id="result-pass-${prefix}-${it.pNumber}" onclick="saveDisputeResult('${it.pNumber}','${month}','${prefix}','pass')">✓ 통과</button>
         <button class="dispute-result-btn fail" id="result-fail-${prefix}-${it.pNumber}" onclick="saveDisputeResult('${it.pNumber}','${month}','${prefix}','fail')">✕ 기각</button>
       </div>
+      <div class="dispute-reason-wrap">
+        <span class="dispute-reason-label">결정 이유</span>
+        <textarea class="dispute-reason-input" id="reason-input-${prefix}-${it.pNumber}" rows="2" placeholder="결정 이유 메모…"
+          onblur="saveDisputeReason('${it.pNumber}','${month}',this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"></textarea>
+      </div>
       <button class="unflag-btn" onclick="toggleFlag('${it.pNumber}','${month}',null)">해제</button>
       <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
       <div class="row-count">${it.bundleCount}건 묶음</div>
@@ -2506,7 +2515,7 @@ function renderDisputeCard(it, month, prefix) {
 
 async function _loadDisputeData(pnums, month, prefix) {
   if (!_sb || !pnums.length) return;
-  const {data} = await _sb.from('haja_flags').select('p_number,note,attachments,dispute_result').in('p_number', pnums).eq('month', month);
+  const {data} = await _sb.from('haja_flags').select('p_number,note,attachments,dispute_result,dispute_reason').in('p_number', pnums).eq('month', month);
   (data||[]).forEach(f => {
     const noteEl = document.getElementById(`note-input-${prefix}-${f.p_number}`);
     if (noteEl && f.note) noteEl.value = f.note;
@@ -2515,7 +2524,14 @@ async function _loadDisputeData(pnums, month, prefix) {
       _disputeResultMap.set(f.p_number+'|'+month, f.dispute_result);
       _applyDisputeResultUI(f.p_number, prefix, f.dispute_result);
     }
+    const reasonEl = document.getElementById(`reason-input-${prefix}-${f.p_number}`);
+    if (reasonEl && f.dispute_reason) reasonEl.value = f.dispute_reason;
   });
+}
+
+async function saveDisputeReason(pNumber, month, el) {
+  if (!_sb) return;
+  await _sb.from('haja_flags').upsert({p_number: pNumber, month, dispute_reason: el.value||null}, {onConflict: 'p_number,month'});
 }
 
 function _applyDisputeResultUI(pNumber, prefix, result) {
@@ -3254,8 +3270,8 @@ async function downloadExcel(scope) {
   const FIELDS  = ['month','type','p_number','product','customer','visit_team','part','customer_request','inspection_action','amount','bundle_count'];
   const COL_W   = [8,22,16,8,10,14,20,35,35,12,8].map(w=>({wch:w}));
 
-  const D_HEADERS = ['월','하자유형','접수번호','제품','고객명','서비스팀','부품명','고객 요구내역','점검 조치내역','금액(원)','건수','이의제기 메모','결과'];
-  const D_COL_W   = [8,22,16,8,10,14,20,35,35,12,8,30,8].map(w=>({wch:w}));
+  const D_HEADERS = ['월','하자유형','접수번호','제품','고객명','서비스팀','부품명','고객 요구내역','점검 조치내역','금액(원)','건수','이의제기 메모','결과','결정 이유'];
+  const D_COL_W   = [8,22,16,8,10,14,20,35,35,12,8,30,8,30].map(w=>({wch:w}));
 
   function makeSheet(rows) {
     const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows.map(r => FIELDS.map(f => r[f] ?? ''))]);
@@ -3264,7 +3280,7 @@ async function downloadExcel(scope) {
   }
 
   async function makeDisputeSheet(cardRows, months) {
-    const {data: flags} = await _sb.from('haja_flags').select('p_number,month,note,dispute_result')
+    const {data: flags} = await _sb.from('haja_flags').select('p_number,month,note,dispute_result,dispute_reason')
       .in('month', months);
     if (!flags?.length) return null;
 
@@ -3282,7 +3298,7 @@ async function downloadExcel(scope) {
       const amt = cards.reduce((s,c) => s + (c.amount||0), 0);
       return [f.month, rep.type||'', f.p_number, rep.product||'', rep.customer||'',
         rep.visit_team||'', rep.part||'', rep.customer_request||'', rep.inspection_action||'',
-        amt, cards.length || '', f.note||'', resultLabel(f.dispute_result)];
+        amt, cards.length || '', f.note||'', resultLabel(f.dispute_result), f.dispute_reason||''];
     }).sort((a,b) => (a[0]||'').localeCompare(b[0]||'') || (a[2]||'').localeCompare(b[2]||''));
 
     const ws = XLSX.utils.aoa_to_sheet([D_HEADERS, ...disputeRows]);
