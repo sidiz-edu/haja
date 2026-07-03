@@ -619,6 +619,13 @@ a{color:inherit;text-decoration:none}
 .dispute-result-btn.fail.active{background:#fee2e2;border-color:#fca5a5;color:#dc2626;font-weight:600}
 .dispute-result-btn:hover:not(.active){background:var(--gray-100)}
 .dispute-result-sub{font-size:10px;color:var(--text-tertiary);margin-top:2px;font-family:var(--font-kr)}
+.dispute-tab-bar{display:flex;gap:6px;padding:10px 16px 4px;align-items:center;border-bottom:1px solid var(--border-subtle);margin-bottom:0}
+.dispute-tab-btn{font-size:11px;padding:3px 14px;border-radius:20px;border:1px solid var(--border-default);background:var(--bg-subtle);color:var(--text-secondary);cursor:pointer;font-family:var(--font-kr);font-weight:500;transition:all .15s}
+.dispute-tab-btn:hover:not(.active){background:var(--gray-100)}
+.dispute-tab-btn.active{background:var(--gray-800);border-color:var(--gray-800);color:#fff}
+.dispute-tab-btn.active.pass{background:#16a34a;border-color:#16a34a}
+.dispute-tab-btn.active.fail{background:#dc2626;border-color:#dc2626}
+.dispute-tab-label{font-size:10px;color:var(--text-tertiary);font-family:var(--font-kr);margin-right:2px}
 .dispute-reason-wrap{margin-top:6px}
 .dispute-reason-input{width:100%;font-size:10px;font-family:var(--font-kr);border:1px dashed var(--border-default);border-radius:4px;padding:3px 7px;outline:none;background:var(--bg-subtle);color:var(--text-secondary);letter-spacing:var(--tracking-kr);resize:none;line-height:1.5}
 .dispute-reason-input:focus{border-color:#9ca3af;border-style:solid;background:#fff;color:var(--text-primary)}
@@ -827,6 +834,7 @@ a{color:inherit;text-decoration:none}
       <input type="text" id="searchBox" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="applyFilter()">
     </div>
     <div id="typeBreakdown"></div>
+    <div id="analysis-dispute-tab-bar" style="display:none"></div>
     <div id="cardList">
       
       <div class="row-card" data-type="A. 냄새 / 유해성" data-prod="T80">
@@ -2074,6 +2082,7 @@ a{color:inherit;text-decoration:none}
     <div class="search-wrap">
       <input type="text" id="june-search" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="juneApplyFilter()">
     </div>
+    <div id="june-dispute-tab-bar" style="display:none"></div>
     <div id="june-card-list"></div>
   </div>
 </div>
@@ -2179,6 +2188,9 @@ function _restoreAnalysisCardList() {
     _injectAnalysisFlags();
   }
   _analysisDisputeFilter = false;
+  _analysisDisputeResultFilter = 'all';
+  const tabBar = document.getElementById('analysis-dispute-tab-bar');
+  if (tabBar) tabBar.style.display = 'none';
 }
 
 function resetAll() {
@@ -2534,6 +2546,29 @@ async function saveDisputeReason(pNumber, month, el) {
   await _sb.from('haja_flags').upsert({p_number: pNumber, month, dispute_reason: el.value||null}, {onConflict: 'p_number,month'});
 }
 
+function _disputeTabBarHTML(prefix, current) {
+  const tabs = [
+    {v:'all',  label:'전체',    cls:''},
+    {v:'pass', label:'✓ 통과',  cls:'pass'},
+    {v:'fail', label:'✕ 기각',  cls:'fail'},
+  ];
+  const fn = prefix === 'june' ? 'juneSetDisputeResultFilter' : 'analysisSetDisputeResultFilter';
+  return `<div class="dispute-tab-bar">
+    <span class="dispute-tab-label">결과 보기</span>
+    ${tabs.map(t=>`<button class="dispute-tab-btn ${t.cls}${current===t.v?' active':''}" onclick="${fn}('${t.v}')">${t.label}</button>`).join('')}
+  </div>`;
+}
+
+function juneSetDisputeResultFilter(v) {
+  _juneDisputeResultFilter = v;
+  juneApplyFilter();
+}
+
+function analysisSetDisputeResultFilter(v) {
+  _analysisDisputeResultFilter = v;
+  analysisFilterDispute();
+}
+
 function _applyDisputeResultUI(pNumber, prefix, result) {
   document.getElementById(`result-pass-${prefix}-${pNumber}`)?.classList.toggle('active', result === 'pass');
   document.getElementById(`result-fail-${prefix}-${pNumber}`)?.classList.toggle('active', result === 'fail');
@@ -2777,7 +2812,8 @@ function switchTab(tab) {
 
 /* ── JUNE TAB ── */
 let _juneCards = [], _juneTypeFilter = null, _juneProdFilter = null, _juneLoaded = false, _juneDisputeFilter = false;
-let _analysisDisputeFilter = false, _analysisCardListHTML = '';
+let _juneDisputeResultFilter = 'all'; // 'all'|'pass'|'fail'
+let _analysisDisputeFilter = false, _analysisCardListHTML = '', _analysisDisputeResultFilter = 'all';
 
 function _extractProduct(part) {
   if (!part) return '';
@@ -2925,6 +2961,7 @@ function juneResetAll() {
 
 function juneFilterDispute() {
   _juneDisputeFilter = true;
+  _juneDisputeResultFilter = 'all';
   _juneTypeFilter = null;
   _juneProdFilter = null;
   document.getElementById('june-filter-label').innerHTML = '<span class="filter-badge" style="background:#dc2626;color:#fff">이의제기 목록</span>';
@@ -2940,19 +2977,30 @@ function juneApplyFilter() {
     const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|26.06월')).map(k=>k.split('|')[0]));
     const byPnum = {};
     _juneCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
-    const items = Object.keys(byPnum).map(pnum => {
+    let items = Object.keys(byPnum).map(pnum => {
       const rows = byPnum[pnum], rep = rows[0];
       return {pNumber:pnum, type:rep.type, customer:rep.customer, visitTeam:rep.visit_team, product:rep.product, part:rep.part,
         customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
         amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
     }).filter(it => !search || [it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
+    // 결과 필터
+    if (_juneDisputeResultFilter !== 'all') {
+      items = items.filter(it => _disputeResultMap.get(it.pNumber+'|26.06월') === _juneDisputeResultFilter);
+    }
+    // 탭바 렌더링
+    const tabBar = document.getElementById('june-dispute-tab-bar');
+    if (tabBar) {
+      tabBar.style.display = '';
+      tabBar.innerHTML = _disputeTabBarHTML('june', _juneDisputeResultFilter);
+    }
     document.getElementById('june-count-label').textContent = `${items.length}건`;
     document.getElementById('june-card-list').innerHTML = items.length
       ? items.map(it => renderDisputeCard(it,'26.06월','june')).join('')
-      : '<div style="padding:24px;color:var(--text-muted);text-align:center">이의제기 항목이 없습니다</div>';
+      : '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">해당하는 이의제기 항목이 없습니다</div>';
     if (items.length) _loadDisputeData(items.map(i=>i.pNumber),'26.06월','june');
     return;
   }
+  document.getElementById('june-dispute-tab-bar').style.display = 'none';
 
   const filtered = _juneCards.filter(c => {
     if (_juneTypeFilter && c.type !== _juneTypeFilter) return false;
@@ -3185,19 +3233,25 @@ function analysisFilterDispute() {
   const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|26.05월')).map(k=>k.split('|')[0]));
   const byPnum = {};
   _analysisCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
-  const items = Object.keys(byPnum).map(pnum => {
+  let items = Object.keys(byPnum).map(pnum => {
     const rows = byPnum[pnum], rep = rows[0];
     return {pNumber:pnum, type:rep.type, customer:rep.customer, visitTeam:rep.visit_team, product:rep.product, part:rep.part,
       customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
       amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
   });
+  if (_analysisDisputeResultFilter !== 'all') {
+    items = items.filter(it => _disputeResultMap.get(it.pNumber+'|26.05월') === _analysisDisputeResultFilter);
+  }
+  // 탭바
+  const tabBar = document.getElementById('analysis-dispute-tab-bar');
+  if (tabBar) { tabBar.style.display = ''; tabBar.innerHTML = _disputeTabBarHTML('analysis', _analysisDisputeResultFilter); }
   document.getElementById('filterLabel').innerHTML = '<span class="filter-badge" style="background:#dc2626;color:#fff">이의제기 목록</span>';
   document.querySelectorAll('#analysis-sidebar .type-card:not(.dispute-filter-item), #analysis-sidebar .prod-row').forEach(el => el.classList.remove('active'));
   document.getElementById('analysis-sidebar-dispute')?.classList.add('active');
   document.getElementById('countLabel').textContent = items.length+'건';
   document.getElementById('cardList').innerHTML = items.length
     ? items.map(it => renderDisputeCard(it,'26.05월','analysis')).join('')
-    : '<div style="padding:24px;color:var(--text-muted);text-align:center">이의제기 항목이 없습니다</div>';
+    : '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">해당하는 이의제기 항목이 없습니다</div>';
   if (items.length) _loadDisputeData(items.map(i=>i.pNumber),'26.05월','analysis');
   document.getElementById('typeBreakdown').innerHTML = '';
 }
