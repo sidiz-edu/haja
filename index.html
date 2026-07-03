@@ -613,6 +613,12 @@ a{color:inherit;text-decoration:none}
 .dispute-sec-empty{padding:20px;text-align:center;color:var(--text-tertiary);font-family:var(--font-kr);font-size:var(--fs-xs)}
 .unflag-btn{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #fca5a5;background:#fff5f5;color:#dc2626;cursor:pointer;font-family:var(--font-kr);transition:all .15s;white-space:nowrap;margin-bottom:6px;display:block;margin-left:auto}
 .unflag-btn:hover{background:#fee2e2;border-color:#ef4444}
+.dispute-result-wrap{display:flex;gap:4px;margin-bottom:8px}
+.dispute-result-btn{flex:1;font-size:10px;padding:4px 0;border-radius:5px;border:1px solid var(--border-default);background:var(--bg-subtle);color:var(--text-secondary);cursor:pointer;font-family:var(--font-kr);transition:all .15s;text-align:center;font-weight:500}
+.dispute-result-btn.pass.active{background:#dcfce7;border-color:#86efac;color:#16a34a;font-weight:600}
+.dispute-result-btn.fail.active{background:#fee2e2;border-color:#fca5a5;color:#dc2626;font-weight:600}
+.dispute-result-btn:hover:not(.active){background:var(--gray-100)}
+.dispute-result-sub{font-size:10px;color:var(--text-tertiary);margin-top:2px;font-family:var(--font-kr)}
 .dispute-note-wrap{margin-top:8px}
 .dispute-note-input{width:100%;font-size:var(--fs-xs);font-family:var(--font-kr);border:1px dashed var(--border-default);border-radius:4px;padding:4px 8px;outline:none;background:var(--bg-subtle);color:var(--text-primary);letter-spacing:var(--tracking-kr)}
 .dispute-note-input:focus{border-color:var(--accent);border-style:solid;background:#fff}
@@ -2406,11 +2412,16 @@ function startTitleEdit() {
 
 /* ── FLAGS (이의제기) ── */
 let _flaggedSet = new Set(), _flagsLoaded = false;
+const _disputeResultMap = new Map(); // "pnum|month" -> 'pass'|'fail'
 
 async function _ensureFlags() {
   if (!_sb || _flagsLoaded) return;
-  const {data} = await _sb.from('haja_flags').select('p_number,month');
+  const {data} = await _sb.from('haja_flags').select('p_number,month,dispute_result');
   _flaggedSet = new Set((data||[]).map(f => f.p_number+'|'+f.month));
+  (data||[]).forEach(f => {
+    if (f.dispute_result) _disputeResultMap.set(f.p_number+'|'+f.month, f.dispute_result);
+    else _disputeResultMap.delete(f.p_number+'|'+f.month);
+  });
   _flagsLoaded = true;
 }
 
@@ -2482,6 +2493,10 @@ function renderDisputeCard(it, month, prefix) {
       </div>
     </div>
     <div class="row-right">
+      <div class="dispute-result-wrap">
+        <button class="dispute-result-btn pass" id="result-pass-${prefix}-${it.pNumber}" onclick="saveDisputeResult('${it.pNumber}','${month}','${prefix}','pass')">✓ 통과</button>
+        <button class="dispute-result-btn fail" id="result-fail-${prefix}-${it.pNumber}" onclick="saveDisputeResult('${it.pNumber}','${month}','${prefix}','fail')">✕ 기각</button>
+      </div>
       <button class="unflag-btn" onclick="toggleFlag('${it.pNumber}','${month}',null)">해제</button>
       <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
       <div class="row-count">${it.bundleCount}건 묶음</div>
@@ -2491,12 +2506,35 @@ function renderDisputeCard(it, month, prefix) {
 
 async function _loadDisputeData(pnums, month, prefix) {
   if (!_sb || !pnums.length) return;
-  const {data} = await _sb.from('haja_flags').select('p_number,note,attachments').in('p_number', pnums).eq('month', month);
+  const {data} = await _sb.from('haja_flags').select('p_number,note,attachments,dispute_result').in('p_number', pnums).eq('month', month);
   (data||[]).forEach(f => {
     const noteEl = document.getElementById(`note-input-${prefix}-${f.p_number}`);
     if (noteEl && f.note) noteEl.value = f.note;
     if (f.attachments?.length) _renderAttachGrid(f.p_number, month, prefix, f.attachments);
+    if (f.dispute_result) {
+      _disputeResultMap.set(f.p_number+'|'+month, f.dispute_result);
+      _applyDisputeResultUI(f.p_number, prefix, f.dispute_result);
+    }
   });
+}
+
+function _applyDisputeResultUI(pNumber, prefix, result) {
+  document.getElementById(`result-pass-${prefix}-${pNumber}`)?.classList.toggle('active', result === 'pass');
+  document.getElementById(`result-fail-${prefix}-${pNumber}`)?.classList.toggle('active', result === 'fail');
+}
+
+async function saveDisputeResult(pNumber, month, prefix, result) {
+  const key = pNumber+'|'+month;
+  const current = _disputeResultMap.get(key);
+  const newResult = current === result ? null : result;
+  if (newResult) _disputeResultMap.set(key, newResult);
+  else _disputeResultMap.delete(key);
+  _applyDisputeResultUI(pNumber, prefix, newResult);
+  // 사이드바 카운트 갱신
+  if (month === '26.06월') renderJunePanel();
+  else if (month === '26.05월') _injectAnalysisFlags();
+  if (!_sb) return;
+  await _sb.from('haja_flags').upsert({p_number: pNumber, month, dispute_result: newResult}, {onConflict: 'p_number,month'});
 }
 
 function _renderAttachGrid(pNumber, month, prefix, urls) {
@@ -2791,14 +2829,21 @@ function renderJunePanel() {
     return ai - bi;
   });
 
-  const disputeCount = [..._flaggedSet].filter(k=>k.endsWith('|26.06월')).length;
+  const disputeKeys = [..._flaggedSet].filter(k=>k.endsWith('|26.06월'));
+  const disputeCount = disputeKeys.length;
+  const passCount = disputeKeys.filter(k=>_disputeResultMap.get(k)==='pass').length;
+  const failCount = disputeKeys.filter(k=>_disputeResultMap.get(k)==='fail').length;
   let sidebarHtml = '';
   if (disputeCount > 0 || _juneDisputeFilter) {
+    const subTxt = (passCount||failCount)
+      ? `<div class="dispute-result-sub">${passCount ? `<span style="color:#16a34a">통과 ${passCount}</span>` : ''}${passCount&&failCount?' · ':''}${failCount ? `<span style="color:#dc2626">기각 ${failCount}</span>` : ''}</div>`
+      : '';
     sidebarHtml += `<div class="type-card dispute-filter-item${_juneDisputeFilter?' active':''}" onclick="juneFilterDispute()" data-dispute="june" style="margin-bottom:10px">
       <div class="type-dot" style="background:#dc2626"></div>
       <div class="type-info">
         <div class="type-name" style="color:#dc2626">이의제기 목록</div>
         <div class="type-meta"><span class="badge" style="background:#dc2626">${disputeCount}건</span></div>
+        ${subTxt}
       </div>
     </div>`;
   }
@@ -3085,7 +3130,13 @@ function _injectAnalysisFlags() {
 
   const sidebar = document.getElementById('analysis-sidebar');
   if (!sidebar) return;
-  const disputeCount = [..._flaggedSet].filter(k=>k.endsWith('|26.05월')).length;
+  const disputeKeys5 = [..._flaggedSet].filter(k=>k.endsWith('|26.05월'));
+  const disputeCount = disputeKeys5.length;
+  const passCount5 = disputeKeys5.filter(k=>_disputeResultMap.get(k)==='pass').length;
+  const failCount5 = disputeKeys5.filter(k=>_disputeResultMap.get(k)==='fail').length;
+  const subTxt5 = (passCount5||failCount5)
+    ? `<div class="dispute-result-sub">${passCount5 ? `<span style="color:#16a34a">통과 ${passCount5}</span>` : ''}${passCount5&&failCount5?' · ':''}${failCount5 ? `<span style="color:#dc2626">기각 ${failCount5}</span>` : ''}</div>`
+    : '';
   let dispItem = document.getElementById('analysis-sidebar-dispute');
   if (disputeCount > 0 || _analysisDisputeFilter) {
     if (!dispItem) {
@@ -3098,11 +3149,15 @@ function _injectAnalysisFlags() {
         <div class="type-info">
           <div class="type-name" style="color:#dc2626">이의제기 목록</div>
           <div class="type-meta"><span class="badge" style="background:#dc2626">${disputeCount}건</span></div>
+          ${subTxt5}
         </div>`;
       sidebar.insertBefore(dispItem, sidebar.firstChild);
     } else {
       dispItem.querySelector('.badge').textContent = disputeCount+'건';
       dispItem.classList.toggle('active', _analysisDisputeFilter);
+      const sub = dispItem.querySelector('.dispute-result-sub');
+      if (sub) sub.outerHTML = subTxt5;
+      else if (subTxt5) dispItem.querySelector('.type-info').insertAdjacentHTML('beforeend', subTxt5);
     }
   } else if (dispItem) {
     dispItem.remove();
@@ -3199,8 +3254,8 @@ async function downloadExcel(scope) {
   const FIELDS  = ['month','type','p_number','product','customer','visit_team','part','customer_request','inspection_action','amount','bundle_count'];
   const COL_W   = [8,22,16,8,10,14,20,35,35,12,8].map(w=>({wch:w}));
 
-  const D_HEADERS = ['월','하자유형','접수번호','제품','고객명','서비스팀','부품명','고객 요구내역','점검 조치내역','금액(원)','건수','이의제기 메모'];
-  const D_COL_W   = [8,22,16,8,10,14,20,35,35,12,8,30].map(w=>({wch:w}));
+  const D_HEADERS = ['월','하자유형','접수번호','제품','고객명','서비스팀','부품명','고객 요구내역','점검 조치내역','금액(원)','건수','이의제기 메모','결과'];
+  const D_COL_W   = [8,22,16,8,10,14,20,35,35,12,8,30,8].map(w=>({wch:w}));
 
   function makeSheet(rows) {
     const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows.map(r => FIELDS.map(f => r[f] ?? ''))]);
@@ -3209,7 +3264,7 @@ async function downloadExcel(scope) {
   }
 
   async function makeDisputeSheet(cardRows, months) {
-    const {data: flags} = await _sb.from('haja_flags').select('p_number,month,note')
+    const {data: flags} = await _sb.from('haja_flags').select('p_number,month,note,dispute_result')
       .in('month', months);
     if (!flags?.length) return null;
 
@@ -3219,6 +3274,7 @@ async function downloadExcel(scope) {
       (byPnumMonth[key] = byPnumMonth[key] || []).push(c);
     });
 
+    const resultLabel = r => r === 'pass' ? '통과' : r === 'fail' ? '기각' : '';
     const disputeRows = flags.map(f => {
       const key = f.p_number + '|' + f.month;
       const cards = byPnumMonth[key] || [];
@@ -3226,7 +3282,7 @@ async function downloadExcel(scope) {
       const amt = cards.reduce((s,c) => s + (c.amount||0), 0);
       return [f.month, rep.type||'', f.p_number, rep.product||'', rep.customer||'',
         rep.visit_team||'', rep.part||'', rep.customer_request||'', rep.inspection_action||'',
-        amt, cards.length || '', f.note||''];
+        amt, cards.length || '', f.note||'', resultLabel(f.dispute_result)];
     }).sort((a,b) => (a[0]||'').localeCompare(b[0]||'') || (a[2]||'').localeCompare(b[2]||''));
 
     const ws = XLSX.utils.aoa_to_sheet([D_HEADERS, ...disputeRows]);
