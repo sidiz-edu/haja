@@ -2245,7 +2245,17 @@ function updateLabel() {
   }
 }
 
-const TYPE_COLORS = {"A. 냄새 / 유해성": "#6E5FC6", "B. 파손 / 찍힘": "#C65878", "C. 조립·시공 불량": "#C68A3D", "D. 외관 / 오염 / 표면": "#2E9B8A", "E. 수평 / 기울어짐": "#8A93A1", "F. 중심봉 가스압 / 높낮이": "#3D6FE0", "G. 유격 / 흔들림 / 소음": "#2E86C6", "H. 착좌감 / 쿠션 / 강도": "#4FA567", "I. 사양변경 / 오구매": "#ABAEB1", "J. 틸팅 / 기능 불만": "#003EFF", "K. 기타 / 강성 교체요구": "#56585A"};
+function maskName(n) {
+  if (!n) return '';
+  const m = n.match(/^(.+?)(\s*\(.*\))?$/);
+  const base = m ? m[1] : n;
+  const suffix = (m && m[2]) ? m[2] : '';
+  if (base.length <= 1) return n;
+  if (base.length === 2) return base[0] + 'X' + suffix;
+  return base[0] + 'X'.repeat(base.length - 2) + base[base.length - 1] + suffix;
+}
+
+const TYPE_COLORS ={"A. 냄새 / 유해성": "#6E5FC6", "B. 파손 / 찍힘": "#C65878", "C. 조립·시공 불량": "#C68A3D", "D. 외관 / 오염 / 표면": "#2E9B8A", "E. 수평 / 기울어짐": "#8A93A1", "F. 중심봉 가스압 / 높낮이": "#3D6FE0", "G. 유격 / 흔들림 / 소음": "#2E86C6", "H. 착좌감 / 쿠션 / 강도": "#4FA567", "I. 사양변경 / 오구매": "#ABAEB1", "J. 틸팅 / 기능 불만": "#003EFF", "K. 기타 / 강성 교체요구": "#56585A"};
 
 function renderBreakdown() {
   const bd = document.getElementById('typeBreakdown');
@@ -2299,7 +2309,12 @@ function renderBreakdown() {
 const _SB_URL = 'https://dvlrzbckneucpvlacdll.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bHJ6YmNrbmV1Y3B2bGFjZGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODE0OTUsImV4cCI6MjA5MDU1NzQ5NX0.ofzGfyjndiT-FAIcG9TCFtUSXsagTBYOnhsP91vx0sE';
 const _sb = window.supabase ? window.supabase.createClient(_SB_URL, _SB_KEY) : null;
-window.addEventListener('load', () => { loadJuneData(); });
+window.addEventListener('load', () => {
+  document.querySelectorAll('#cardList .row-customer').forEach(el => {
+    el.textContent = maskName(el.textContent);
+  });
+  loadJuneData();
+});
 
 /* ===== MEMO SYSTEM ===== */
 let _memos = [];
@@ -2492,7 +2507,7 @@ function renderDisputeCard(it, month, prefix) {
     <div class="row-left">
       <span class="tag" style="background:${col}">${it.type||''}</span>
       <div class="row-num">${it.pNumber}</div>
-      <div class="row-customer">${it.customer||''}</div>
+      <div class="row-customer">${maskName(it.customer||'')}</div>
       ${it.visitTeam ? `<div class="row-visit-team"><span>${it.visitTeam}</span></div>` : ''}
       <div class="row-prod">${it.product||''}</div>
       <div class="row-part">부위: ${it.part||''}</div>
@@ -3043,7 +3058,7 @@ function juneApplyFilter() {
       <div class="row-left">
         <span class="tag" style="background:${col}">${c.type||''}</span>
         <div class="row-num">${c.p_number||''}</div>
-        <div class="row-customer">${c.customer||''}</div>
+        <div class="row-customer">${maskName(c.customer||'')}</div>
         ${c.visit_team ? `<div class="row-visit-team"><span>${c.visit_team}</span></div>` : ''}
         <div class="row-prod" id="june-prod-wrap-${c.id}">${prodInner}</div>
         <div class="row-part">부위: ${c.part||''}</div>
@@ -3352,7 +3367,7 @@ async function downloadExcel(scope) {
   const D_COL_W   = [8,22,16,8,10,14,20,35,35,12,8,30,8,30].map(w=>({wch:w}));
 
   function makeSheet(rows) {
-    const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows.map(r => FIELDS.map(f => r[f] ?? ''))]);
+    const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows.map(r => FIELDS.map(f => f === 'customer' ? maskName(r[f]||'') : (r[f] ?? '')))]);
     ws['!cols'] = COL_W;
     return ws;
   }
@@ -3374,7 +3389,7 @@ async function downloadExcel(scope) {
       const cards = byPnumMonth[key] || [];
       const rep = cards[0] || {};
       const amt = cards.reduce((s,c) => s + (c.amount||0), 0);
-      return [f.month, rep.type||'', f.p_number, rep.product||'', rep.customer||'',
+      return [f.month, rep.type||'', f.p_number, rep.product||'', maskName(rep.customer||''),
         rep.visit_team||'', rep.part||'', rep.customer_request||'', rep.inspection_action||'',
         amt, cards.length || '', f.note||'', resultLabel(f.dispute_result), f.dispute_reason||''];
     }).sort((a,b) => (a[0]||'').localeCompare(b[0]||'') || (a[2]||'').localeCompare(b[2]||''));
