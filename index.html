@@ -3669,7 +3669,6 @@ async function saveQiIssue(id) {
   const qcStdEl = document.querySelector(`input[name="qc-std-${id}"]:checked`);
   const qcInsEl = document.querySelector(`input[name="qc-ins-${id}"]:checked`);
   const updates = {
-    part_knowledge: document.getElementById(`qi-part-${id}`).innerHTML,
     qc_has_standard: qcStdEl ? qcStdEl.value==='true' : null,
     qc_inspection_type: qcInsEl ? qcInsEl.value : null,
     qc_standard_detail: document.getElementById(`qi-qc-${id}`).innerHTML,
