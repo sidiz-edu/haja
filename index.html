@@ -559,7 +559,8 @@ a{color:inherit;text-decoration:none}
 .qi-toolbar-sep{width:1px;height:14px;background:var(--border);margin:0 3px;flex-shrink:0}
 .qi-color-dot{width:14px !important;height:14px !important;border-radius:50% !important;padding:0 !important;border:1.5px solid rgba(0,0,0,0.15) !important;cursor:pointer;flex-shrink:0}
 .qi-color-dot:hover{transform:scale(1.25);border-color:rgba(0,0,0,0.4) !important;background:inherit !important;color:inherit !important}
-.qi-richtext{width:100%;box-sizing:border-box;font-family:var(--font-kr);font-size:var(--fs-xs);color:var(--text-primary);background:var(--gray-100);border-radius:4px;padding:var(--space-2);line-height:var(--lh-relaxed);min-height:80px;max-height:320px;overflow-y:auto;letter-spacing:var(--tracking-kr);font-weight:var(--fw-light);white-space:pre-wrap;word-break:break-word;outline:none}
+.qi-knowledge{padding:var(--space-3) var(--space-4);border-top:1px solid var(--border)}
+.qi-pk-textarea{width:100%;box-sizing:border-box;min-height:80px;max-height:200px;resize:vertical;font-family:var(--font-kr);font-size:var(--fs-xs);color:var(--text-primary);background:var(--gray-100);border:none;border-radius:4px;padding:var(--space-2);line-height:var(--lh-relaxed);outline:none}.qi-richtext{width:100%;box-sizing:border-box;font-family:var(--font-kr);font-size:var(--fs-xs);color:var(--text-primary);background:var(--gray-100);border-radius:4px;padding:var(--space-2);line-height:var(--lh-relaxed);min-height:80px;max-height:320px;overflow-y:auto;letter-spacing:var(--tracking-kr);font-weight:var(--fw-light);white-space:pre-wrap;word-break:break-word;outline:none}
 .qi-richtext:empty::before{content:attr(data-placeholder);color:var(--text-tertiary);pointer-events:none}
 .qi-richtext:focus{background:#f8faff}
 .qi-richtext[data-minheight="48"]{min-height:48px}
@@ -3663,6 +3664,7 @@ async function saveQiIssue(id) {
     qc_standard_detail: document.getElementById(`qi-qc-${id}`).innerHTML,
     as_inspection_note: document.getElementById(`qi-as-${id}`).innerHTML,
     cs_guideline: document.getElementById(`qi-cs-${id}`).innerHTML,
+    part_knowledge: (document.getElementById(`qi-pk-${id}`) || {}).value || null,
     updated_at: new Date().toISOString()
   };
   const {error} = await _sb.from('haja_quality_issues').update(updates).eq('id', id);
