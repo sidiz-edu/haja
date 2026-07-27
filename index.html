@@ -3674,7 +3674,7 @@ async function saveQiIssue(id) {
     qc_standard_detail: document.getElementById(`qi-qc-${id}`).innerHTML,
     as_inspection_note: document.getElementById(`qi-as-${id}`).innerHTML,
     cs_guideline: document.getElementById(`qi-cs-${id}`).innerHTML,
-    part_knowledge: (document.getElementById(`qi-pk-${id}`) || {}).value || null,
+    part_knowledge: (document.getElementById(`qi-part-${id}`) || {}).innerHTML || null,
     updated_at: new Date().toISOString()
   };
   const {error} = await _sb.from('haja_quality_issues').update(updates).eq('id', id);
