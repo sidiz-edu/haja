@@ -2107,7 +2107,10 @@ a{color:inherit;text-decoration:none}
   <div class="qi-panel">
     <div class="qi-top">
       <h2>주요항목</h2>
-      <button class="qi-add-btn" onclick="openQiModal()">+ 주요 이슈 추가</button>
+      <div style="display:flex;gap:8px">
+        <button class="qi-add-btn" style="background:var(--text-tertiary)" onclick="downloadQiIssues()">⬇ 다운로드</button>
+        <button class="qi-add-btn" onclick="openQiModal()">+ 주요 이슈 추가</button>
+      </div>
     </div>
     <div class="qi-cards" id="qi-cards">
       <div class="qi-empty" id="qi-empty">저장된 이슈가 없습니다.<br>주요 이슈를 추가해보세요.</div>
@@ -3494,6 +3497,43 @@ function _getCsDetails(type, month) {
   return _asCards
     .filter(c => c.type === type && (!month || c.month === month))
     .map(c => ({num: c.p_number, prod: c.product, 고객요구: c.customer_request, 점검조치: c.inspection_action}));
+}
+
+function _qiPlainText(html) {
+  if (!html) return '';
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+}
+
+function downloadQiIssues() {
+  if (!window.XLSX) { alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+  if (!_qiIssues.length) { alert('다운로드할 주요 이슈가 없습니다.'); return; }
+
+  const insTypeLabel = t => t==='full' ? '전체제품' : t==='parts' ? '부품만' : t==='other' ? '기타' : '';
+  const HEADERS = ['제목','월','관련유형','AS카드 건수','AS카드 금액(원)','부품에 대한 기본지식','AS엔지니어팀 조치방법','판정기준 유무','검수방식','품질관리팀 검수 판정 상세','컨택센터 요청사항'];
+  const rows = _qiIssues.map(issue => {
+    const stat = _getCsStat(issue.related_type, issue.month);
+    return [
+      issue.title || '',
+      issue.month || '전체',
+      issue.related_type || '',
+      stat.count,
+      stat.amount,
+      _qiPlainText(issue.part_knowledge),
+      _qiPlainText(issue.as_inspection_note),
+      issue.qc_has_standard === true ? '있음' : issue.qc_has_standard === false ? '없음' : '',
+      insTypeLabel(issue.qc_inspection_type),
+      _qiPlainText(issue.qc_standard_detail),
+      _qiPlainText(issue.cs_guideline)
+    ];
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows]);
+  ws['!cols'] = [{wch:24},{wch:8},{wch:26},{wch:10},{wch:14},{wch:40},{wch:40},{wch:10},{wch:10},{wch:40},{wch:40}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '주요항목');
+  XLSX.writeFile(wb, '주요항목_정리.xlsx');
 }
 
 async function loadQiIssues() {
