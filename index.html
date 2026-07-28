@@ -3651,14 +3651,16 @@ async function changeQiMonth(id, month) {
   const casesEl = card.querySelector(`#qi-cs-cases-${id}`);
   if (casesEl) {
     casesEl.innerHTML = '';
+    const typeColor = TYPE_COLORS[issue.related_type] || '#ABAEB1';
     details.forEach(d => {
       const item = document.createElement('div');
-      item.className = 'qi-cs-case-item';
-      item.textContent = `${d.num} ${d.prod}`;
-      item.title = `고객요구: ${d.고객요구}\n점검조치: ${d.점검조치}`;
-      const typeColor = TYPE_COLORS[issue.related_type] || '#ABAEB1';
+      item.className = 'qi-cs-case';
       item.style.background = typeColor + '22';
       item.style.borderColor = typeColor + '55';
+      item.innerHTML = `<span class="qi-cs-case-num"></span><span class="qi-cs-case-prod"></span>`;
+      item.querySelector('.qi-cs-case-num').textContent = d.num;
+      item.querySelector('.qi-cs-case-prod').textContent = d.prod;
+      item.addEventListener('click', () => openCaseModal(d));
       casesEl.appendChild(item);
     });
   }
