@@ -675,6 +675,39 @@ a{color:inherit;text-decoration:none}
 .attach-progress-bar{height:4px;background:var(--gray-200);border-radius:2px;overflow:hidden;margin-bottom:3px}
 .attach-progress-fill{height:100%;background:var(--blue);border-radius:2px;transition:width .2s}
 .attach-progress-txt{font-size:10px;color:var(--text-tertiary);font-family:var(--font-display)}
+/* ── COMPARE PANEL ── */
+.cmp-title{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-secondary);letter-spacing:var(--tracking-wide);text-transform:uppercase;margin:0 0 var(--space-3)}
+.cmp-month-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--space-4);margin-bottom:var(--space-6)}
+.cmp-month-card{background:var(--surface);border:var(--border-card);border-radius:var(--radius-md);padding:var(--space-4);box-shadow:var(--shadow-sm)}
+.cmp-month-card .month-label{font-size:var(--fs-xs);font-weight:600;color:var(--text-tertiary);letter-spacing:var(--tracking-wide);margin-bottom:var(--space-3)}
+.cmp-month-card .month-main{font-size:1.6rem;font-weight:700;color:var(--text-primary);line-height:1;margin-bottom:2px}
+.cmp-month-card .month-sub{font-size:var(--fs-xs);color:var(--text-tertiary);margin-bottom:var(--space-3)}
+.cmp-month-card .month-stats{display:flex;gap:var(--space-4)}
+.cmp-month-card .stat-item{display:flex;flex-direction:column;gap:2px}
+.cmp-month-card .stat-val{font-size:var(--fs-sm);font-weight:600;color:var(--text-primary)}
+.cmp-month-card .stat-lbl{font-size:10px;color:var(--text-tertiary);font-family:var(--font-kr)}
+.cmp-month-card .team-rows{margin-top:var(--space-3);border-top:var(--border-hairline);padding-top:var(--space-2);display:flex;flex-direction:column;gap:4px}
+.cmp-month-card .team-row{display:flex;align-items:center;gap:var(--space-2);font-size:11px;font-family:var(--font-kr)}
+.cmp-month-card .team-badge{padding:1px 7px;border-radius:10px;font-weight:600;font-size:10px;white-space:nowrap}
+.cmp-month-card .team-amt{margin-left:auto;color:var(--text-secondary);font-weight:500}
+.cmp-bar-section{margin-bottom:var(--space-6)}
+.cmp-bar-row{display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-3)}
+.cmp-bar-row .cmp-bar-lbl{width:60px;font-size:var(--fs-xs);font-weight:600;color:var(--text-secondary);font-family:var(--font-kr);flex-shrink:0;text-align:right}
+.cmp-bar-track{flex:1;height:28px;background:var(--bg-subtle);border-radius:4px;overflow:hidden}
+.cmp-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 10px;transition:width .4s ease;min-width:2px}
+.cmp-bar-fill span{font-size:11px;font-weight:600;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cmp-bar-meta{width:160px;font-size:11px;color:var(--text-tertiary);flex-shrink:0;font-family:var(--font-kr)}
+.cmp-type-section{overflow-x:auto}
+.cmp-type-table{width:100%;border-collapse:collapse;font-size:var(--fs-xs);font-family:var(--font-kr)}
+.cmp-type-table th{padding:8px 12px;background:var(--bg-subtle);border-bottom:2px solid var(--border-default);font-weight:600;color:var(--text-secondary);white-space:nowrap;text-align:center}
+.cmp-type-table th:first-child{text-align:left;min-width:200px}
+.cmp-type-table td{padding:7px 12px;border-bottom:var(--border-hairline);color:var(--text-primary);text-align:center;vertical-align:middle}
+.cmp-type-table td:first-child{text-align:left;color:var(--text-secondary)}
+.cmp-type-table tr:hover td{background:var(--bg-subtle)}
+.cmp-cell-bar{display:inline-flex;align-items:center;gap:6px}
+.cmp-cell-pip{display:inline-block;height:8px;border-radius:2px;vertical-align:middle}
+.cmp-delta{font-size:10px;font-weight:600}
+.cmp-delta.up{color:#dc2626}.cmp-delta.dn{color:#16a34a}
 </style>
 </head>
 <body>
@@ -715,6 +748,7 @@ a{color:inherit;text-decoration:none}
   <button class="tab-btn active" onclick="switchTab('july')">26.07월</button>
   <button class="tab-btn" onclick="switchTab('june')">26.06월</button>
   <button class="tab-btn" onclick="switchTab('analysis')">26.05월</button>
+  <button class="tab-btn" onclick="switchTab('compare')">월별 비교</button>
   <button class="tab-btn" onclick="switchTab('quality')">주요항목</button>
   <button class="tab-btn" onclick="switchTab('guide')">조치내역 작성 방법</button>
 </div>
@@ -2136,6 +2170,11 @@ a{color:inherit;text-decoration:none}
 </div>
 </div><!-- /panel-july -->
 
+<!-- COMPARE PANEL -->
+<div id="panel-compare" class="panel" style="padding:var(--space-5)">
+  <div id="compare-body"><div style="color:var(--text-tertiary);font-family:var(--font-kr)">로딩 중…</div></div>
+</div>
+
 <!-- QUALITY MANAGEMENT PANEL -->
 <div id="panel-quality" class="panel">
   <div class="qi-panel">
@@ -2869,15 +2908,16 @@ async function saveDisputeNote(pNumber, month, input) {
 
 /* ── TAB SWITCHING ── */
 function switchTab(tab) {
-  const tabs = ['july','june','analysis','quality','guide'];
+  const tabs = ['july','june','analysis','compare','quality','guide'];
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
-  ['june','july','analysis','quality','guide'].forEach(id => {
+  ['june','july','analysis','compare','quality','guide'].forEach(id => {
     const el = document.getElementById('panel-'+id);
     if (el) el.classList.toggle('active', id===tab);
   });
   if (tab==='analysis') loadAnalysisSummary();
   if (tab==='june') loadJuneData();
   if (tab==='july') loadJulyData();
+  if (tab==='compare') loadCompareData();
   if (tab==='quality') loadQiIssues();
   if (tab==='guide') loadGuide();
 }
@@ -3389,6 +3429,129 @@ function julyApplyFilter() {
       </div>
     </div>`;
   }).join('') || '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
+}
+
+/* ── COMPARE TAB ── */
+let _compareLoaded = false;
+
+async function loadCompareData() {
+  if (!_sb) return;
+  if (_compareLoaded) return;
+  _compareLoaded = true;
+  const {data} = await _sb.from('haja_as_cards').select('month,type,amount,team').order('month');
+  renderComparePanel(data || []);
+}
+
+function renderComparePanel(rows) {
+  const months = [...new Set(rows.map(r => r.month))].sort();
+  const MONTH_COLORS = ['#003EFF','#3D6FE0','#2E86C6','#2E9B8A','#4FA567','#6E5FC6'];
+
+  // 월별 집계
+  const byMonth = {};
+  months.forEach((m, i) => {
+    const mr = rows.filter(r => r.month === m);
+    const total = mr.reduce((s, r) => s + (r.amount || 0), 0);
+    const cnt = mr.length;
+    const teams = {};
+    mr.forEach(r => {
+      const t = r.team || '미확인';
+      if (!teams[t]) teams[t] = {cnt: 0, amt: 0};
+      teams[t].cnt++;
+      teams[t].amt += r.amount || 0;
+    });
+    byMonth[m] = {cnt, total, avg: cnt ? Math.round(total / cnt) : 0, teams, color: MONTH_COLORS[i % MONTH_COLORS.length]};
+  });
+
+  const maxAmt = Math.max(...months.map(m => byMonth[m].total), 1);
+
+  // 유형별 집계
+  const allTypes = [...new Set(rows.map(r => r.type).filter(Boolean))].sort((a, b) => {
+    const order = ['A','B','C','D','E','F','G','H','I','J','K'];
+    return order.findIndex(x => a.startsWith(x+'.')) - order.findIndex(x => b.startsWith(x+'.'));
+  });
+  const typeByMonth = {};
+  allTypes.forEach(t => {
+    typeByMonth[t] = {};
+    months.forEach(m => { typeByMonth[t][m] = rows.filter(r => r.month === m && r.type === t).length; });
+  });
+
+  // ── 월별 요약 카드
+  const cardHtml = months.map(m => {
+    const d = byMonth[m];
+    const hasTeams = Object.keys(d.teams).some(t => t !== '미확인' && d.teams[t].cnt > 0);
+    const teamRows = hasTeams ? `<div class="team-rows">` +
+      Object.entries(d.teams)
+        .filter(([t]) => t !== '미확인' && t !== '품질')
+        .sort((a,b) => b[1].amt - a[1].amt)
+        .map(([t, td]) => {
+          const bg = t === '옴니' ? '#dbeafe' : '#ede9fe';
+          const col = t === '옴니' ? '#1d4ed8' : '#6d28d9';
+          return `<div class="team-row">
+            <span class="team-badge" style="background:${bg};color:${col}">${t}</span>
+            <span style="color:var(--text-secondary)">${td.cnt}건</span>
+            <span class="team-amt">${td.amt.toLocaleString()}원</span>
+          </div>`;
+        }).join('') + `</div>` : '';
+    return `<div class="cmp-month-card">
+      <div class="month-label" style="color:${d.color}">${m}</div>
+      <div class="month-main">${d.cnt}<span style="font-size:1rem;font-weight:400;color:var(--text-tertiary)">건</span></div>
+      <div class="month-sub">총 ${d.total.toLocaleString()}원</div>
+      <div class="month-stats">
+        <div class="stat-item"><span class="stat-val">${d.avg.toLocaleString()}원</span><span class="stat-lbl">건당 평균</span></div>
+        <div class="stat-item"><span class="stat-val">${Object.keys(d.teams).length > 1 ? Object.keys(d.teams).filter(t=>t!=='미확인'&&t!=='품질').length+'개팀' : '단일팀'}</span><span class="stat-lbl">귀책 팀</span></div>
+      </div>
+      ${teamRows}
+    </div>`;
+  }).join('');
+
+  // ── 금액 트렌드 바
+  const barHtml = months.map(m => {
+    const d = byMonth[m];
+    const w = Math.round(d.total / maxAmt * 100);
+    const prev = months[months.indexOf(m) - 1];
+    let delta = '';
+    if (prev) {
+      const diff = d.total - byMonth[prev].total;
+      const pct = byMonth[prev].total ? Math.round(Math.abs(diff) / byMonth[prev].total * 100) : 0;
+      delta = `<span class="cmp-delta ${diff >= 0 ? 'up' : 'dn'}">${diff >= 0 ? '▲' : '▼'}${pct}%</span>`;
+    }
+    return `<div class="cmp-bar-row">
+      <span class="cmp-bar-lbl" style="color:${d.color}">${m}</span>
+      <div class="cmp-bar-track">
+        <div class="cmp-bar-fill" style="width:${w}%;background:${d.color}">
+          <span>${d.total.toLocaleString()}원</span>
+        </div>
+      </div>
+      <div class="cmp-bar-meta">${d.cnt}건 · 평균 ${d.avg.toLocaleString()}원 ${delta}</div>
+    </div>`;
+  }).join('');
+
+  // ── 유형별 비교 테이블
+  const thHtml = months.map(m => `<th style="color:${byMonth[m].color}">${m}</th>`).join('');
+  const trHtml = allTypes.map(t => {
+    const col = TYPE_COLORS[t] || '#ABAEB1';
+    const cells = months.map(m => {
+      const cnt = typeByMonth[t][m] || 0;
+      const total = byMonth[m].cnt || 1;
+      const pct = Math.round(cnt / total * 100);
+      const barW = Math.round(cnt / Math.max(...months.map(mm => typeByMonth[t][mm] || 0), 1) * 100);
+      return `<td>${cnt ? `<div class="cmp-cell-bar"><div class="cmp-cell-pip" style="width:${Math.max(barW,4)}px;background:${col}"></div>${cnt}건<span style="color:var(--text-tertiary);font-size:10px">(${pct}%)</span></div>` : '<span style="color:var(--border-default)">—</span>'}</td>`;
+    }).join('');
+    return `<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${col};margin-right:6px;vertical-align:middle"></span>${t}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('compare-body').innerHTML = `
+    <p class="cmp-title">월별 요약</p>
+    <div class="cmp-month-grid">${cardHtml}</div>
+    <p class="cmp-title">총 하자보수비 추이</p>
+    <div class="cmp-bar-section">${barHtml}</div>
+    <p class="cmp-title">불만 유형별 월별 비교</p>
+    <div class="cmp-type-section">
+      <table class="cmp-type-table">
+        <thead><tr><th>불만 유형</th>${thHtml}</tr></thead>
+        <tbody>${trHtml}</tbody>
+      </table>
+    </div>`;
 }
 
 let _analysisCards = [], _analysisLoaded = false;
