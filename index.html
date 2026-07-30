@@ -3443,6 +3443,8 @@ async function loadCompareData() {
 }
 
 function renderComparePanel(rows) {
+  // 옴니채널팀만: team이 없는 과거 데이터(05·06월) + 07월 이후 '옴니' 행
+  rows = rows.filter(r => !r.team || r.team === '옴니');
   const months = [...new Set(rows.map(r => r.month))].sort();
   const MONTH_COLORS = ['#003EFF','#3D6FE0','#2E86C6','#2E9B8A','#4FA567','#6E5FC6'];
 
@@ -3541,6 +3543,7 @@ function renderComparePanel(rows) {
   }).join('');
 
   document.getElementById('compare-body').innerHTML = `
+    <div style="margin-bottom:var(--space-4);font-size:var(--fs-xs);color:var(--text-tertiary);font-family:var(--font-kr);letter-spacing:var(--tracking-wide)">옴니채널성장팀 기준 · 팀 구분 없는 과거 데이터 포함</div>
     <p class="cmp-title">월별 요약</p>
     <div class="cmp-month-grid">${cardHtml}</div>
     <p class="cmp-title">총 하자보수비 추이</p>
