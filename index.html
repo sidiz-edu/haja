@@ -708,6 +708,12 @@ a{color:inherit;text-decoration:none}
 .cmp-cell-pip{display:inline-block;height:8px;border-radius:2px;vertical-align:middle}
 .cmp-delta{font-size:10px;font-weight:600}
 .cmp-delta.up{color:#dc2626}.cmp-delta.dn{color:#16a34a}
+#db-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--font-kr);color:var(--text-tertiary);padding:3px 10px;border-radius:999px;border:1px solid var(--border-subtle);background:var(--bg-subtle)}
+#db-status .dot{width:6px;height:6px;border-radius:50%;background:var(--gray-300)}
+#db-status.ok .dot{background:#16a34a}
+#db-status.err .dot{background:#dc2626}
+#db-status.ok{border-color:#bbf7d0;background:#f0fdf4;color:#15803d}
+#db-status.err{border-color:#fecaca;background:#fef2f2;color:#b91c1c}
 </style>
 </head>
 <body>
@@ -724,6 +730,7 @@ a{color:inherit;text-decoration:none}
         품질관리팀 조치내역 확인 방법 : ERP korea 접속 → 판정 결과등록 → 고객명 검색 → 세부 결과 등록 → [파일유무] 열 확인
       </p>
     </div>
+    <div id="db-status"><span class="dot"></span><span id="db-status-txt">DB 연결 중…</span></div>
     <div class="dl-wrap" id="dl-wrap">
       <button class="dl-btn" onclick="toggleDlMenu(event)">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3M2 11v1.5A1.5 1.5 0 0 0 3.5 14h9A1.5 1.5 0 0 0 14 12.5V11"/></svg>
@@ -2391,10 +2398,27 @@ function renderBreakdown() {
 const _SB_URL = 'https://dvlrzbckneucpvlacdll.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bHJ6YmNrbmV1Y3B2bGFjZGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODE0OTUsImV4cCI6MjA5MDU1NzQ5NX0.ofzGfyjndiT-FAIcG9TCFtUSXsagTBYOnhsP91vx0sE';
 const _sb = window.supabase ? window.supabase.createClient(_SB_URL, _SB_KEY) : null;
+
+async function _checkDbStatus() {
+  const el = document.getElementById('db-status');
+  const txt = document.getElementById('db-status-txt');
+  if (!_sb) {
+    el.className = 'err'; txt.textContent = 'DB 미연결 (라이브러리 로드 실패)'; return;
+  }
+  const {error} = await _sb.from('haja_as_cards').select('id', {count:'exact', head:true});
+  if (error) {
+    el.className = 'err'; txt.textContent = 'DB 연결 오류';
+  } else {
+    el.className = 'ok'; txt.textContent = 'DB 연결됨';
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 1s'; }, 3000);
+  }
+}
+
 window.addEventListener('load', () => {
   document.querySelectorAll('#cardList .row-customer').forEach(el => {
     el.textContent = maskName(el.textContent);
   });
+  _checkDbStatus();
   loadJulyData();
 });
 
