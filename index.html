@@ -2688,22 +2688,13 @@ function _disputeTabBarHTML(prefix, current) {
     {v:'pass', label:'✓ 통과',  cls:'pass'},
     {v:'fail', label:'✕ 기각',  cls:'fail'},
   ];
-  const fn = prefix === 'june' ? 'juneSetDisputeResultFilter' : prefix === 'july' ? 'julySetDisputeResultFilter' : 'analysisSetDisputeResultFilter';
+  const fn = prefix + 'SetDisputeResultFilter';
   return `<div class="dispute-tab-bar">
     <span class="dispute-tab-label">결과 보기</span>
     ${tabs.map(t=>`<button class="dispute-tab-btn ${t.cls}${current===t.v?' active':''}" onclick="${fn}('${t.v}')">${t.label}</button>`).join('')}
   </div>`;
 }
 
-function juneSetDisputeResultFilter(v) {
-  _juneDisputeResultFilter = v;
-  juneApplyFilter();
-}
-
-function julySetDisputeResultFilter(v) {
-  _julyDisputeResultFilter = v;
-  julyApplyFilter();
-}
 
 function analysisSetDisputeResultFilter(v) {
   _analysisDisputeResultFilter = v;
@@ -2939,18 +2930,20 @@ async function saveDisputeNote(pNumber, month, input) {
 
 /* ── TAB SWITCHING ── */
 function switchTab(tab) {
-  const tabs = ['july','june','analysis','compare','quality','guide'];
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
-  ['june','july','analysis','compare','quality','guide'].forEach(id => {
-    const el = document.getElementById('panel-'+id);
-    if (el) el.classList.toggle('active', id===tab);
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const m = (b.getAttribute('onclick')||'').match(/switchTab\('([^']+)'\)/);
+    b.classList.toggle('active', !!(m && m[1] === tab));
+  });
+  document.querySelectorAll('[id^="panel-"]').forEach(el => {
+    el.classList.toggle('active', el.id === 'panel-'+tab);
   });
   if (tab==='analysis') loadAnalysisSummary();
-  if (tab==='june') loadJuneData();
-  if (tab==='july') loadJulyData();
-  if (tab==='compare') loadCompareData();
-  if (tab==='quality') loadQiIssues();
-  if (tab==='guide') loadGuide();
+  else if (tab==='june') loadJuneData();
+  else if (tab==='july') loadJulyData();
+  else if (tab==='compare') loadCompareData();
+  else if (tab==='quality') loadQiIssues();
+  else if (tab==='guide') loadGuide();
+  else { const fn = window['load'+tab.charAt(0).toUpperCase()+tab.slice(1)+'Data']; if (fn) fn(); }
 }
 
 /* ── JUNE TAB ── */
@@ -3611,6 +3604,257 @@ async function julySetProduct(pnum, product) {
   } else {
     if (wrap) wrap.style.opacity = '1';
     alert('저장 실패: ' + error.message);
+  }
+}
+
+/* ── MONTH TAB FACTORY ──
+   사용법: _setupMonthTab({month:'26.08월', prefix:'aug', teams:[{id:'omni',label:'옴니채널',teamVal:'옴니'},{id:'ext',label:'외부채널',teamVal:'외부'}]})
+   HTML: <div id="panel-aug" class="panel">...</div> + <button class="tab-btn" onclick="switchTab('aug')">26.08월</button>
+*/
+function _setupMonthTab(cfg) {
+  const {month, prefix, teams, onDataLoaded} = cfg;
+  const Cap = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+
+  let _cards=[], _loaded=false, _typeFilter=null, _prodFilter=null;
+  let _disputeFilter=false, _disputeResultFilter='all', _team='all';
+
+  function _teamFilter(c) {
+    if (!teams || _team==='all') return true;
+    const t = teams.find(t=>t.id===_team);
+    return t ? c.team===t.teamVal : true;
+  }
+
+  window['load'+Cap+'Data'] = async function() {
+    if (!_sb) return;
+    if (_loaded) { await _ensureFlags(); window['render'+Cap+'Panel'](); return; }
+    await _ensureFlags();
+    const {data} = await _sb.from('haja_as_cards').select('*').eq('month',month).order('type');
+    _cards = data || [];
+    if (onDataLoaded) await onDataLoaded(_cards, _sb);
+    _loaded = true;
+    window['render'+Cap+'Panel']();
+  };
+
+  window['render'+Cap+'Panel'] = function() {
+    const base = teams ? _cards.filter(_teamFilter) : _cards;
+    const grps = {};
+    base.forEach(c => { (grps[c.p_number]=grps[c.p_number]||[]).push(c); });
+    const total = Object.keys(grps).length;
+    const totalAmt = base.reduce((s,c)=>s+(c.amount||0),0);
+    const types = [...new Set(base.map(c=>c.type))].filter(Boolean);
+    const maxCount = Math.max(...types.map(t=>Object.values(grps).filter(rows=>rows.some(r=>r.type===t)).length),1);
+
+    const passKeys = [..._flaggedSet].filter(k=>k.endsWith('|'+month)&&_disputeResultMap.get(k)==='pass');
+    const removedAmt = passKeys.reduce((s,k)=>s+(_disputeRemovedAmtMap.get(k)||0),0);
+    const removedCnt = passKeys.length;
+    const finalAmt = totalAmt-removedAmt, finalCnt = total-removedCnt;
+
+    const kpiEl = document.getElementById(prefix+'-kpis');
+    if (kpiEl) kpiEl.innerHTML = `
+      <div class="kpi kpi-accent"><div class="v">${total}</div><div class="l">총 접수건</div></div>
+      <div class="kpi"><div class="v">${totalAmt.toLocaleString()}</div><div class="l">총 금액 (원)</div></div>
+      <div class="kpi"><div class="v">${types.length}</div><div class="l">불만 유형</div></div>
+      <div class="kpi"><div class="v">${total?Math.round(totalAmt/total).toLocaleString():0}</div><div class="l">건당 평균 (원)</div></div>
+      <div class="kpi-sep"></div>
+      <div class="kpi kpi-final"><div class="v">${finalCnt}</div><div class="l">최종 접수건</div></div>
+      <div class="kpi kpi-final"><div class="v">${finalAmt.toLocaleString()}</div><div class="l">최종 금액 (원)</div></div>
+      <div class="kpi kpi-final"><div class="v">${finalCnt?Math.round(finalAmt/finalCnt).toLocaleString():0}</div><div class="l">최종 건당 평균 (원)</div></div>`;
+
+    const typeOrder=['A','B','C','D','E','F','G','H','I','J','K'];
+    types.sort((a,b)=>typeOrder.findIndex(x=>a.startsWith(x+'.'))-typeOrder.findIndex(x=>b.startsWith(x+'.')));
+
+    const dKeys=[..._flaggedSet].filter(k=>k.endsWith('|'+month));
+    const dCnt=dKeys.length, pCnt=dKeys.filter(k=>_disputeResultMap.get(k)==='pass').length, fCnt=dKeys.filter(k=>_disputeResultMap.get(k)==='fail').length;
+    let sb='';
+    if (dCnt>0||_disputeFilter) {
+      const sub=(pCnt||fCnt)?`<div class="dispute-result-sub">${pCnt?`<span style="color:#16a34a">통과 ${pCnt}</span>`:''}${pCnt&&fCnt?' · ':''}${fCnt?`<span style="color:#dc2626">기각 ${fCnt}</span>`:''}</div>`:'';
+      sb+=`<div class="type-card dispute-filter-item${_disputeFilter?' active':''}" onclick="${prefix}FilterDispute()" data-dispute="${prefix}" style="margin-bottom:10px">
+        <div class="type-dot" style="background:#dc2626"></div>
+        <div class="type-info"><div class="type-name" style="color:#dc2626">이의제기 목록</div>
+        <div class="type-meta"><span class="badge" style="background:#dc2626">${dCnt}건</span></div>${sub}</div></div>`;
+    }
+    sb+=`<h2>불만 유형 필터</h2><button class="reset-btn" onclick="${prefix}ResetAll()">전체 보기</button>`;
+    types.forEach(t=>{
+      const col=TYPE_COLORS[t]||'#ABAEB1';
+      const cnt=Object.values(grps).filter(rows=>rows.some(r=>r.type===t)).length;
+      const amt=base.filter(c=>c.type===t).reduce((s,c)=>s+(c.amount||0),0);
+      const pct=total?(cnt/total*100).toFixed(1):0;
+      sb+=`<div class="type-card" onclick="${prefix}FilterType('${t.replace(/'/g,"\\'")}')\" style="--accent:${col}" data-type="${t}">
+        <div class="type-dot" style="background:${col}"></div>
+        <div class="type-info"><div class="type-name">${t}</div>
+        <div class="type-bar-wrap"><div class="type-bar" style="width:${Math.round(cnt/maxCount*100)}%;background:${col}"></div></div>
+        <div class="type-meta"><span class="badge" style="background:${col}">${cnt}건</span> <span class="amt">${amt.toLocaleString()}원</span> <span class="pct">${pct}%</span></div>
+        </div></div>`;
+    });
+    const prods={};
+    Object.values(grps).forEach(rows=>{const p=rows.find(r=>r.product)?.product;if(p)prods[p]=(prods[p]||0)+1;});
+    const sProds=Object.entries(prods).sort((a,b)=>b[1]-a[1]);
+    const maxProd=sProds[0]?.[1]||1, totProd=sProds.reduce((s,[,c])=>s+c,0)||1;
+    sb+='<div class="section-title">제품별 접수 건수</div>';
+    sProds.forEach(([p,cnt])=>{sb+=`<div class="prod-row" data-prod="${p}" onclick="${prefix}FilterProd('${p.replace(/'/g,"\\'")}')"><span class="prod-name">${p}</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:${Math.round(cnt/maxProd*100)}%"></div></div><span class="prod-cnt">${cnt}건<span class="prod-pct">${(cnt/totProd*100).toFixed(1)}%</span></span></div>`;});
+    const sEl=document.getElementById(prefix+'-sidebar');
+    if (sEl) sEl.innerHTML=sb;
+    _renderSummaryTables(base,prefix+'-summary');
+    window[prefix+'ApplyFilter']();
+  };
+
+  window[prefix+'FilterType'] = function(t) {
+    _typeFilter=t; _prodFilter=null; _disputeFilter=false;
+    const lbl=document.getElementById(prefix+'-filter-label'); if(lbl) lbl.textContent=t;
+    document.querySelectorAll('#'+prefix+'-sidebar .type-card').forEach(el=>el.classList.toggle('active',el.dataset.type===t));
+    document.querySelectorAll('#'+prefix+'-sidebar .prod-row').forEach(el=>el.classList.remove('active'));
+    window[prefix+'ApplyFilter']();
+  };
+
+  window[prefix+'FilterProd'] = function(p) {
+    _prodFilter=p; _typeFilter=null; _disputeFilter=false;
+    const lbl=document.getElementById(prefix+'-filter-label'); if(lbl) lbl.textContent=p;
+    document.querySelectorAll('#'+prefix+'-sidebar .prod-row').forEach(el=>el.classList.toggle('active',el.dataset.prod===p));
+    document.querySelectorAll('#'+prefix+'-sidebar .type-card').forEach(el=>el.classList.remove('active'));
+    window[prefix+'ApplyFilter']();
+  };
+
+  window[prefix+'ResetAll'] = function() {
+    _typeFilter=null; _prodFilter=null; _disputeFilter=false;
+    const lbl=document.getElementById(prefix+'-filter-label'); if(lbl) lbl.textContent='';
+    const srch=document.getElementById(prefix+'-search'); if(srch) srch.value='';
+    document.querySelectorAll('#'+prefix+'-sidebar .type-card, #'+prefix+'-sidebar .prod-row').forEach(el=>el.classList.remove('active'));
+    window[prefix+'ApplyFilter']();
+  };
+
+  window[prefix+'FilterDispute'] = function() {
+    _disputeFilter=true; _disputeResultFilter='all'; _typeFilter=null; _prodFilter=null;
+    const lbl=document.getElementById(prefix+'-filter-label');
+    if(lbl) lbl.innerHTML='<span class="filter-badge" style="background:#dc2626;color:#fff">이의제기 목록</span>';
+    document.querySelectorAll('#'+prefix+'-sidebar .type-card:not(.dispute-filter-item), #'+prefix+'-sidebar .prod-row').forEach(el=>el.classList.remove('active'));
+    document.querySelector('#'+prefix+'-sidebar .dispute-filter-item')?.classList.add('active');
+    window[prefix+'ApplyFilter']();
+  };
+
+  window[prefix+'SetDisputeResultFilter'] = function(v) {
+    _disputeResultFilter=v; window[prefix+'ApplyFilter']();
+  };
+
+  window[prefix+'_prodSelectHTML'] = function(id, cur) {
+    const sc=(cur||'').replace(/'/g,"\\'");
+    return `<select class="june-prod-select" onchange="${prefix}SetProduct('${id}',this.value)" onblur="${prefix}BlurProd('${id}','${sc}')">
+      <option value="">제품 선택…</option>
+      ${_JUNE_PROD_LIST.map(p=>`<option value="${p}"${p===cur?' selected':''}>${p}</option>`).join('')}
+    </select>`;
+  };
+
+  window[prefix+'ShowProdEdit'] = function(pnum, cur) {
+    const wrap=document.getElementById(prefix+'-prod-wrap-'+pnum); if(!wrap) return;
+    wrap.innerHTML=window[prefix+'_prodSelectHTML'](pnum,cur);
+    wrap.querySelector('select').focus();
+  };
+
+  window[prefix+'BlurProd'] = function(pnum, cur) {
+    const wrap=document.getElementById(prefix+'-prod-wrap-'+pnum); if(!wrap) return;
+    const sel=wrap.querySelector('select');
+    if(sel&&!sel.value) wrap.innerHTML=cur
+      ?`<span class="june-prod-txt" onclick="${prefix}ShowProdEdit('${pnum}','${(cur||'').replace(/'/g,"\\'")}')\" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
+      :window[prefix+'_prodSelectHTML'](pnum,'');
+  };
+
+  window[prefix+'SetProduct'] = async function(pnum, product) {
+    if(!_sb||!product) return;
+    const wrap=document.getElementById(prefix+'-prod-wrap-'+pnum);
+    if(wrap) wrap.style.opacity='0.5';
+    const {error}=await _sb.from('haja_as_cards').update({product}).eq('p_number',pnum).eq('month',month);
+    if(!error) { _cards.filter(c=>c.p_number===pnum).forEach(c=>c.product=product); window['render'+Cap+'Panel'](); }
+    else { if(wrap) wrap.style.opacity='1'; alert('저장 실패: '+error.message); }
+  };
+
+  window[prefix+'ApplyFilter'] = function() {
+    const search=(document.getElementById(prefix+'-search')?.value||'').toLowerCase();
+    if (_disputeFilter) {
+      const flagPnums=new Set([..._flaggedSet].filter(k=>k.endsWith('|'+month)).map(k=>k.split('|')[0]));
+      const base=teams?_cards.filter(_teamFilter):_cards;
+      const byPnum={};
+      base.forEach(c=>{if(flagPnums.has(c.p_number))(byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c);});
+      let items=Object.keys(byPnum).map(pnum=>{
+        const rows=byPnum[pnum],rep=rows[0];
+        return {pNumber:pnum,type:rep.type,customer:rep.customer,visitTeam:rep.visit_team,product:rep.product,part:rep.part,
+          customerRequest:rep.customer_request,inspectionAction:rep.inspection_action,
+          amount:rows.reduce((s,c)=>s+(c.amount||0),0),bundleCount:rows.length};
+      }).filter(it=>!search||[it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
+      if(_disputeResultFilter!=='all') items=items.filter(it=>_disputeResultMap.get(it.pNumber+'|'+month)===_disputeResultFilter);
+      const tabBar=document.getElementById(prefix+'-dispute-tab-bar');
+      if(tabBar){tabBar.style.display='';tabBar.innerHTML=_disputeTabBarHTML(prefix,_disputeResultFilter);}
+      const cl=document.getElementById(prefix+'-count-label'); if(cl) cl.textContent=items.length+'건';
+      const cardList=document.getElementById(prefix+'-card-list');
+      if(cardList) cardList.innerHTML=items.length
+        ?items.map(it=>renderDisputeCard(it,month,prefix)).join('')
+        :'<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">해당하는 이의제기 항목이 없습니다</div>';
+      if(items.length) _loadDisputeData(items.map(i=>i.pNumber),month,prefix);
+      return;
+    }
+    const tabBar=document.getElementById(prefix+'-dispute-tab-bar'); if(tabBar) tabBar.style.display='none';
+    const base=teams?_cards.filter(_teamFilter):_cards;
+    const grpOrder=[],grpMap={};
+    base.forEach(c=>{if(!grpMap[c.p_number]){grpMap[c.p_number]=[];grpOrder.push(c.p_number);}grpMap[c.p_number].push(c);});
+    const filtered=grpOrder.filter(pnum=>{
+      const rows=grpMap[pnum];
+      if(_typeFilter&&!rows.some(r=>r.type===_typeFilter)) return false;
+      if(_prodFilter&&!rows.some(r=>r.product===_prodFilter)) return false;
+      if(search&&!rows.some(r=>[r.p_number,r.product,r.customer,r.part,r.customer_request,r.inspection_action].some(v=>v&&v.toLowerCase().includes(search)))) return false;
+      return true;
+    });
+    const cl=document.getElementById(prefix+'-count-label'); if(cl) cl.textContent=filtered.length+'건';
+    const cardList=document.getElementById(prefix+'-card-list'); if(!cardList) return;
+    cardList.innerHTML=filtered.map(pnum=>{
+      const rows=grpMap[pnum],rep=rows[0];
+      const gtypes=[...new Set(rows.map(r=>r.type).filter(Boolean))];
+      const col=TYPE_COLORS[gtypes[0]]||'#ABAEB1';
+      const typeTag=gtypes.length>1
+        ?`<span class="tag" style="background:${col}">${gtypes[0]} <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span></span>`
+        :`<span class="tag" style="background:${col}">${gtypes[0]||''}</span>`;
+      const rowAmt=rows.reduce((s,r)=>s+(r.amount||0),0);
+      const product=rows.find(r=>r.product)?.product||'';
+      const sp=product.replace(/'/g,"\\'");
+      const prodInner=product
+        ?`<span class="june-prod-txt" onclick="${prefix}ShowProdEdit('${pnum}','${sp}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
+        :window[prefix+'_prodSelectHTML'](pnum,'');
+      const isFlagged=_flaggedSet.has(pnum+'|'+month);
+      const parts=[...new Set(rows.map(r=>r.part).filter(Boolean))];
+      const actions=rows.map(r=>r.inspection_action).filter(Boolean);
+      const cntBadge=rows.length>1?`<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b;margin-left:4px;font-weight:600">${rows.length}건</span>`:'';
+      let teamBadge='';
+      if(teams){
+        const tv=[...new Set(rows.map(r=>r.team).filter(t=>t&&t!=='미확인'&&t!=='품질'))];
+        teamBadge=tv.map(t=>`<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${t==='옴니'?'#dbeafe':'#ede9fe'};color:${t==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${t}</span>`).join('');
+      }
+      return `<div class="row-card${isFlagged?' flagged-card':''}" data-type="${gtypes[0]||''}" data-prod="${product}">
+        <div class="row-left">
+          ${typeTag}
+          <div class="row-num">${pnum}${cntBadge}${teamBadge}</div>
+          <div class="row-customer">${maskName(rep.customer||'')}</div>
+          ${rep.visit_team?`<div class="row-visit-team"><span>${rep.visit_team}</span></div>`:''}
+          <div class="row-prod" id="${prefix}-prod-wrap-${pnum}">${prodInner}</div>
+          <div class="row-part">부위: ${parts.join(' · ')}</div>
+        </div>
+        <div class="row-center">
+          <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${actions.join('<br>')}</span></div>
+          <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
+        </div>
+        <div class="row-right">
+          <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag('${pnum}','${month}',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
+            <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
+          </button>
+          <div class="row-amount">${rowAmt.toLocaleString()}<span>원</span></div>
+          <div class="row-count">${rows.length>1?rows.length+'건 묶음':rep.bundle_count||'1건'}</div>
+        </div>
+      </div>`;
+    }).join('')||'<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
+  };
+
+  if (teams) {
+    window[prefix+'SetTeam'] = function(team) {
+      _team=team; _typeFilter=null; _prodFilter=null; _disputeFilter=false;
+      document.querySelectorAll('.'+prefix+'-team-btn').forEach(b=>b.classList.toggle('active',b.dataset.team===team));
+      window['render'+Cap+'Panel']();
+    };
   }
 }
 
