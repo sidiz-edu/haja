@@ -2999,10 +2999,12 @@ async function loadJuneData() {
 }
 
 function renderJunePanel() {
-  const total = _juneCards.length;
+  const _pnGroups = {};
+  _juneCards.forEach(c => { (_pnGroups[c.p_number]=_pnGroups[c.p_number]||[]).push(c); });
+  const total = Object.keys(_pnGroups).length;
   const totalAmt = _juneCards.reduce((s,c) => s+(c.amount||0), 0);
   const types = [...new Set(_juneCards.map(c=>c.type))].filter(Boolean);
-  const maxCount = Math.max(...types.map(t => _juneCards.filter(c=>c.type===t).length), 1);
+  const maxCount = Math.max(...types.map(t => Object.values(_pnGroups).filter(rows=>rows.some(r=>r.type===t)).length), 1);
 
   const junePassKeys = [..._flaggedSet].filter(k=>k.endsWith('|26.06월') && _disputeResultMap.get(k)==='pass');
   const removedAmt = junePassKeys.reduce((s,k)=>s+(_disputeRemovedAmtMap.get(k)||0),0);
@@ -3048,7 +3050,7 @@ function renderJunePanel() {
   sidebarHtml += '<h2>불만 유형 필터</h2><button class="reset-btn" onclick="juneResetAll()">전체 보기</button>';
   sortedTypes.forEach(t => {
     const col = TYPE_COLORS[t] || '#ABAEB1';
-    const cnt = _juneCards.filter(c=>c.type===t).length;
+    const cnt = Object.values(_pnGroups).filter(rows=>rows.some(r=>r.type===t)).length;
     const amt = _juneCards.filter(c=>c.type===t).reduce((s,c)=>s+(c.amount||0),0);
     const pct = total ? (cnt/total*100).toFixed(1) : 0;
     const barW = Math.round(cnt/maxCount*100);
@@ -3062,7 +3064,7 @@ function renderJunePanel() {
   });
 
   const prods = {};
-  _juneCards.forEach(c => { if(c.product) prods[c.product] = (prods[c.product]||0)+1; });
+  Object.values(_pnGroups).forEach(rows => { const p=rows.find(r=>r.product)?.product; if(p) prods[p]=(prods[p]||0)+1; });
   const sortedProds = Object.entries(prods).sort((a,b)=>b[1]-a[1]);
   const maxProd = sortedProds[0]?.[1] || 1;
   const totalProdCnt = sortedProds.reduce((s,[,c])=>s+c, 0) || 1;
@@ -3149,38 +3151,52 @@ function juneApplyFilter() {
   }
   document.getElementById('june-dispute-tab-bar').style.display = 'none';
 
-  const filtered = _juneCards.filter(c => {
-    if (_juneTypeFilter && c.type !== _juneTypeFilter) return false;
-    if (_juneProdFilter && c.product !== _juneProdFilter) return false;
-    if (search && ![c.p_number,c.product,c.customer,c.part,c.customer_request,c.inspection_action].some(v=>v&&v.toLowerCase().includes(search))) return false;
+  const allGrpOrder = [], allGrpMap = {};
+  _juneCards.forEach(c => { if(!allGrpMap[c.p_number]){allGrpMap[c.p_number]=[];allGrpOrder.push(c.p_number);}allGrpMap[c.p_number].push(c); });
+  const grpOrder = allGrpOrder.filter(pnum => {
+    const rows = allGrpMap[pnum];
+    if (_juneTypeFilter && !rows.some(r=>r.type===_juneTypeFilter)) return false;
+    if (_juneProdFilter && !rows.some(r=>r.product===_juneProdFilter)) return false;
+    if (search && !rows.some(r=>[r.p_number,r.product,r.customer,r.part,r.customer_request,r.inspection_action].some(v=>v&&v.toLowerCase().includes(search)))) return false;
     return true;
   });
-  document.getElementById('june-count-label').textContent = `${filtered.length}건`;
-  document.getElementById('june-card-list').innerHTML = filtered.map(c => {
-    const col = TYPE_COLORS[c.type] || '#ABAEB1';
-    const prodInner = c.product
-      ? `<span class="june-prod-txt" onclick="juneShowProdEdit('${c.id}','${c.product}')" title="클릭하여 변경">${c.product} <span class="june-edit-hint">✎</span></span>`
-      : _juneProdSelect(c.id, '');
-    const isFlagged = _flaggedSet.has(c.p_number+'|26.06월');
-    return `<div class="row-card${isFlagged?' flagged-card':''}" data-type="${c.type||''}" data-prod="${c.product||''}" id="june-card-${c.id}">
+  document.getElementById('june-count-label').textContent = `${grpOrder.length}건`;
+  document.getElementById('june-card-list').innerHTML = grpOrder.map(pnum => {
+    const rows = allGrpMap[pnum];
+    const rep = rows[0];
+    const gtypes = [...new Set(rows.map(r=>r.type).filter(Boolean))];
+    const col = TYPE_COLORS[gtypes[0]] || '#ABAEB1';
+    const typeTag = gtypes.length > 1
+      ? `<span class="tag" style="background:${col}">${gtypes[0]} <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span></span>`
+      : `<span class="tag" style="background:${col}">${gtypes[0]||''}</span>`;
+    const totalAmt = rows.reduce((s,r)=>s+(r.amount||0),0);
+    const product = rows.find(r=>r.product)?.product||'';
+    const prodInner = product
+      ? `<span class="june-prod-txt" onclick="juneShowProdEdit('${pnum}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
+      : _juneProdSelect(pnum, '');
+    const isFlagged = _flaggedSet.has(pnum+'|26.06월');
+    const partsList = [...new Set(rows.map(r=>r.part).filter(Boolean))];
+    const actionsList = rows.map(r=>r.inspection_action).filter(Boolean);
+    const cntBadge = rows.length > 1 ? `<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b;margin-left:4px;font-weight:600">${rows.length}건</span>` : '';
+    return `<div class="row-card${isFlagged?' flagged-card':''}" data-type="${gtypes[0]||''}" data-prod="${product}">
       <div class="row-left">
-        <span class="tag" style="background:${col}">${c.type||''}</span>
-        <div class="row-num">${c.p_number||''}</div>
-        <div class="row-customer">${maskName(c.customer||'')}</div>
-        ${c.visit_team ? `<div class="row-visit-team"><span>${c.visit_team}</span></div>` : ''}
-        <div class="row-prod" id="june-prod-wrap-${c.id}">${prodInner}</div>
-        <div class="row-part">부위: ${c.part||''}</div>
+        ${typeTag}
+        <div class="row-num">${pnum}${cntBadge}</div>
+        <div class="row-customer">${maskName(rep.customer||'')}</div>
+        ${rep.visit_team ? `<div class="row-visit-team"><span>${rep.visit_team}</span></div>` : ''}
+        <div class="row-prod" id="june-prod-wrap-${pnum}">${prodInner}</div>
+        <div class="row-part">부위: ${partsList.join(' · ')}</div>
       </div>
       <div class="row-center">
-        <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${c.inspection_action||''}</span></div>
-        <div class="row-req"><strong>고객 요구:</strong> ${c.customer_request||''}</div>
+        <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${actionsList.join('<br>')}</span></div>
+        <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
       </div>
       <div class="row-right">
-        <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag('${c.p_number}','26.06월',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
+        <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag('${pnum}','26.06월',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
           <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
         </button>
-        <div class="row-amount">${(c.amount||0).toLocaleString()}<span>원</span></div>
-        <div class="row-count">${c.bundle_count||'1건'} 묶음</div>
+        <div class="row-amount">${totalAmt.toLocaleString()}<span>원</span></div>
+        <div class="row-count">${rows.length > 1 ? rows.length+'건 묶음' : rep.bundle_count||'1건'}</div>
       </div>
     </div>`;
   }).join('');
@@ -3195,32 +3211,31 @@ function _juneProdSelect(id, cur) {
   </select>`;
 }
 
-function juneShowProdEdit(id, cur) {
-  const wrap = document.getElementById(`june-prod-wrap-${id}`);
+function juneShowProdEdit(pnum, cur) {
+  const wrap = document.getElementById(`june-prod-wrap-${pnum}`);
   if (!wrap) return;
-  wrap.innerHTML = _juneProdSelect(id, cur);
+  wrap.innerHTML = _juneProdSelect(pnum, cur);
   wrap.querySelector('select').focus();
 }
 
-function juneBlurProd(id, cur) {
-  const wrap = document.getElementById(`june-prod-wrap-${id}`);
+function juneBlurProd(pnum, cur) {
+  const wrap = document.getElementById(`june-prod-wrap-${pnum}`);
   if (!wrap) return;
   const sel = wrap.querySelector('select');
   if (sel && !sel.value) {
     wrap.innerHTML = cur
-      ? `<span class="june-prod-txt" onclick="juneShowProdEdit('${id}','${cur}')" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
-      : _juneProdSelect(id, '');
+      ? `<span class="june-prod-txt" onclick="juneShowProdEdit('${pnum}','${cur.replace(/'/g,"\\'")}')" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
+      : _juneProdSelect(pnum, '');
   }
 }
 
-async function juneSetProduct(id, product) {
+async function juneSetProduct(pnum, product) {
   if (!_sb || !product) return;
-  const wrap = document.getElementById(`june-prod-wrap-${id}`);
+  const wrap = document.getElementById(`june-prod-wrap-${pnum}`);
   if (wrap) wrap.style.opacity = '0.5';
-  const {error} = await _sb.from('haja_as_cards').update({product}).eq('id', id);
+  const {error} = await _sb.from('haja_as_cards').update({product}).eq('p_number', pnum).eq('month','26.06월');
   if (!error) {
-    const card = _juneCards.find(c => c.id === id);
-    if (card) card.product = product;
+    _juneCards.filter(c => c.p_number === pnum).forEach(c => c.product = product);
     renderJunePanel();
   } else {
     if (wrap) wrap.style.opacity = '1';
@@ -3344,10 +3359,12 @@ async function loadJulyData() {
 
 function renderJulyPanel() {
   const base = _julyCards.filter(_julyTeamFilter);
-  const total = base.length;
+  const _jpGroups = {};
+  base.forEach(c => { (_jpGroups[c.p_number]=_jpGroups[c.p_number]||[]).push(c); });
+  const total = Object.keys(_jpGroups).length;
   const totalAmt = base.reduce((s,c) => s+(c.amount||0), 0);
   const types = [...new Set(base.map(c=>c.type))].filter(Boolean);
-  const maxCount = Math.max(...types.map(t => base.filter(c=>c.type===t).length), 1);
+  const maxCount = Math.max(...types.map(t => Object.values(_jpGroups).filter(rows=>rows.some(r=>r.type===t)).length), 1);
 
   document.getElementById('july-kpis').innerHTML = `
     <div class="kpi kpi-accent"><div class="v">${total}</div><div class="l">총 접수건</div></div>
@@ -3365,7 +3382,7 @@ function renderJulyPanel() {
   let sidebarHtml = '<h2>불만 유형 필터</h2><button class="reset-btn" onclick="julyResetAll()">전체 보기</button>';
   sortedTypes.forEach(t => {
     const col = TYPE_COLORS[t] || '#ABAEB1';
-    const cnt = base.filter(c=>c.type===t).length;
+    const cnt = Object.values(_jpGroups).filter(rows=>rows.some(r=>r.type===t)).length;
     const amt = base.filter(c=>c.type===t).reduce((s,c)=>s+(c.amount||0),0);
     const pct = total ? (cnt/total*100).toFixed(1) : 0;
     const barW = Math.round(cnt/maxCount*100);
@@ -3379,7 +3396,7 @@ function renderJulyPanel() {
   });
 
   const prods = {};
-  base.forEach(c => { if(c.product) prods[c.product] = (prods[c.product]||0)+1; });
+  Object.values(_jpGroups).forEach(rows => { const p=rows.find(r=>r.product)?.product; if(p) prods[p]=(prods[p]||0)+1; });
   const sortedProds = Object.entries(prods).sort((a,b)=>b[1]-a[1]);
   const maxProd = sortedProds[0]?.[1] || 1;
   const totalProdCnt = sortedProds.reduce((s,[,c])=>s+c, 0) || 1;
@@ -3423,36 +3440,50 @@ function julyResetAll() {
 function julyApplyFilter() {
   const search = (document.getElementById('july-search')?.value||'').toLowerCase();
   const base = _julyCards.filter(_julyTeamFilter);
-  const filtered = base.filter(c => {
-    if (_julyTypeFilter && c.type !== _julyTypeFilter) return false;
-    if (_julyProdFilter && c.product !== _julyProdFilter) return false;
-    if (search && ![c.p_number,c.product,c.customer,c.part,c.customer_request,c.inspection_action].some(v=>v&&v.toLowerCase().includes(search))) return false;
+  const allGrpOrder = [], allGrpMap = {};
+  base.forEach(c => { if(!allGrpMap[c.p_number]){allGrpMap[c.p_number]=[];allGrpOrder.push(c.p_number);}allGrpMap[c.p_number].push(c); });
+  const grpOrder = allGrpOrder.filter(pnum => {
+    const rows = allGrpMap[pnum];
+    if (_julyTypeFilter && !rows.some(r=>r.type===_julyTypeFilter)) return false;
+    if (_julyProdFilter && !rows.some(r=>r.product===_julyProdFilter)) return false;
+    if (search && !rows.some(r=>[r.p_number,r.product,r.customer,r.part,r.customer_request,r.inspection_action].some(v=>v&&v.toLowerCase().includes(search)))) return false;
     return true;
   });
-  document.getElementById('july-count-label').textContent = `${filtered.length}건`;
-  document.getElementById('july-card-list').innerHTML = filtered.map(c => {
-    const col = TYPE_COLORS[c.type] || '#ABAEB1';
-    const teamBadge = c.team && c.team !== '미확인' && c.team !== '품질'
-      ? `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${c.team==='옴니'?'#dbeafe':'#ede9fe'};color:${c.team==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${c.team}</span>` : '';
-    const prodInner = c.product
-      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${c.id}','${c.product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${c.product} <span class="june-edit-hint">✎</span></span>`
-      : _julyProdSelect(c.id, '');
-    return `<div class="row-card" data-type="${c.type||''}" data-prod="${c.product||''}">
+  document.getElementById('july-count-label').textContent = `${grpOrder.length}건`;
+  document.getElementById('july-card-list').innerHTML = grpOrder.map(pnum => {
+    const rows = allGrpMap[pnum];
+    const rep = rows[0];
+    const gtypes = [...new Set(rows.map(r=>r.type).filter(Boolean))];
+    const col = TYPE_COLORS[gtypes[0]] || '#ABAEB1';
+    const typeTag = gtypes.length > 1
+      ? `<span class="tag" style="background:${col}">${gtypes[0]} <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span></span>`
+      : `<span class="tag" style="background:${col}">${gtypes[0]||''}</span>`;
+    const totalAmt = rows.reduce((s,r)=>s+(r.amount||0),0);
+    const product = rows.find(r=>r.product)?.product||'';
+    const teams = [...new Set(rows.map(r=>r.team).filter(t=>t&&t!=='미확인'&&t!=='품질'))];
+    const teamBadge = teams.map(t=>`<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${t==='옴니'?'#dbeafe':'#ede9fe'};color:${t==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${t}</span>`).join('');
+    const prodInner = product
+      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${pnum}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
+      : _julyProdSelect(pnum, '');
+    const partsList = [...new Set(rows.map(r=>r.part).filter(Boolean))];
+    const actionsList = rows.map(r=>r.inspection_action).filter(Boolean);
+    const cntBadge = rows.length > 1 ? `<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b;margin-left:4px;font-weight:600">${rows.length}건</span>` : '';
+    return `<div class="row-card" data-type="${gtypes[0]||''}" data-prod="${product}">
       <div class="row-left">
-        <span class="tag" style="background:${col}">${c.type||''}</span>
-        <div class="row-num">${c.p_number||''}${teamBadge}</div>
-        <div class="row-customer">${c.customer||''}</div>
-        ${c.visit_team ? `<div class="row-visit-team"><span>${c.visit_team}</span></div>` : ''}
-        <div class="row-prod" id="july-prod-wrap-${c.id}">${prodInner}</div>
-        <div class="row-part">부위: ${c.part||''}</div>
+        ${typeTag}
+        <div class="row-num">${pnum}${cntBadge}${teamBadge}</div>
+        <div class="row-customer">${maskName(rep.customer||'')}</div>
+        ${rep.visit_team ? `<div class="row-visit-team"><span>${rep.visit_team}</span></div>` : ''}
+        <div class="row-prod" id="july-prod-wrap-${pnum}">${prodInner}</div>
+        <div class="row-part">부위: ${partsList.join(' · ')}</div>
       </div>
       <div class="row-center">
-        <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${c.inspection_action||''}</span></div>
-        <div class="row-req"><strong>고객 요구:</strong> ${c.customer_request||''}</div>
+        <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${actionsList.join('<br>')}</span></div>
+        <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
       </div>
       <div class="row-right">
-        <div class="row-amount">${(c.amount||0).toLocaleString()}<span>원</span></div>
-        <div class="row-count">${c.bundle_count||'1건'} 묶음</div>
+        <div class="row-amount">${totalAmt.toLocaleString()}<span>원</span></div>
+        <div class="row-count">${rows.length > 1 ? rows.length+'건 묶음' : rep.bundle_count||'1건'}</div>
       </div>
     </div>`;
   }).join('') || '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
@@ -3465,32 +3496,31 @@ function _julyProdSelect(id, cur) {
   </select>`;
 }
 
-function julyShowProdEdit(id, cur) {
-  const wrap = document.getElementById(`july-prod-wrap-${id}`);
+function julyShowProdEdit(pnum, cur) {
+  const wrap = document.getElementById(`july-prod-wrap-${pnum}`);
   if (!wrap) return;
-  wrap.innerHTML = _julyProdSelect(id, cur);
+  wrap.innerHTML = _julyProdSelect(pnum, cur);
   wrap.querySelector('select').focus();
 }
 
-function julyBlurProd(id, cur) {
-  const wrap = document.getElementById(`july-prod-wrap-${id}`);
+function julyBlurProd(pnum, cur) {
+  const wrap = document.getElementById(`july-prod-wrap-${pnum}`);
   if (!wrap) return;
   const sel = wrap.querySelector('select');
   if (sel && !sel.value) {
     wrap.innerHTML = cur
-      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${id}','${cur.replace(/'/g,"\\'")}')" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
-      : _julyProdSelect(id, '');
+      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${pnum}','${cur.replace(/'/g,"\\'")}')" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
+      : _julyProdSelect(pnum, '');
   }
 }
 
-async function julySetProduct(id, product) {
+async function julySetProduct(pnum, product) {
   if (!_sb || !product) return;
-  const wrap = document.getElementById(`july-prod-wrap-${id}`);
+  const wrap = document.getElementById(`july-prod-wrap-${pnum}`);
   if (wrap) wrap.style.opacity = '0.5';
-  const {error} = await _sb.from('haja_as_cards').update({product}).eq('id', id);
+  const {error} = await _sb.from('haja_as_cards').update({product}).eq('p_number', pnum).eq('month','26.07월');
   if (!error) {
-    const card = _julyCards.find(c => c.id === id);
-    if (card) card.product = product;
+    _julyCards.filter(c => c.p_number === pnum).forEach(c => c.product = product);
     renderJulyPanel();
   } else {
     if (wrap) wrap.style.opacity = '1';
