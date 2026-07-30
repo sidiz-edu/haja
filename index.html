@@ -522,7 +522,13 @@ a{color:inherit;text-decoration:none}
 .tab-btn:hover:not(.active){color:var(--text-secondary)}
 .panel{display:none}
 .panel.active{display:block}
-#panel-analysis.active,#panel-june.active{display:flex;flex-direction:column}
+#panel-analysis.active,#panel-june.active,#panel-july.active{display:flex;flex-direction:column}
+.july-team-bar{display:flex;gap:8px;padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);background:var(--bg-subtle)}
+.july-team-btn{padding:5px 16px;border-radius:20px;border:1px solid var(--border-default);background:var(--bg-default);color:var(--text-secondary);cursor:pointer;font-family:var(--font-kr);font-size:var(--fs-xs);font-weight:500;transition:all .15s}
+.july-team-btn:hover:not(.active){background:var(--gray-100)}
+.july-team-btn.active{background:var(--gray-800);border-color:var(--gray-800);color:#fff}
+.july-team-btn.omni.active{background:#2563eb;border-color:#2563eb}
+.july-team-btn.ext.active{background:#7c3aed;border-color:#7c3aed}
 
 /* ── QUALITY PANEL ── */
 .qi-panel{padding:var(--space-5);background:var(--bg);min-height:calc(100vh - 180px)}
@@ -707,6 +713,7 @@ a{color:inherit;text-decoration:none}
 <!-- TAB BAR -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('june')">26.06월</button>
+  <button class="tab-btn" onclick="switchTab('july')">26.07월</button>
   <button class="tab-btn" onclick="switchTab('analysis')">26.05월</button>
   <button class="tab-btn" onclick="switchTab('quality')">주요항목</button>
   <button class="tab-btn" onclick="switchTab('guide')">조치내역 작성 방법</button>
@@ -2102,6 +2109,33 @@ a{color:inherit;text-decoration:none}
 </div>
 </div><!-- /panel-june -->
 
+<div id="panel-july" class="panel">
+<div class="sub" style="padding:var(--space-3) var(--space-5) 0;font-size:var(--fs-xs);color:var(--text-tertiary);letter-spacing:var(--tracking-wide)">26년 7월 &middot; 옴니채널성장팀 + 외부채널성장팀 &middot; 시디즈 &middot; 접수번호 기준</div>
+<div class="july-team-bar">
+  <button class="july-team-btn active" onclick="julySetTeam('all')">전체</button>
+  <button class="july-team-btn omni" onclick="julySetTeam('omni')">옴니채널성장팀</button>
+  <button class="july-team-btn ext" onclick="julySetTeam('ext')">외부채널성장팀</button>
+</div>
+<div id="july-kpis" class="kpis" style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)">
+  <div class="kpi kpi-accent"><div class="v" style="font-size:1.4rem">…</div><div class="l">로딩 중</div></div>
+</div>
+<div id="july-summary"></div>
+<div class="main">
+  <div class="sidebar" id="july-sidebar"></div>
+  <div class="content">
+    <div class="content-header">
+      <h2>접수 상세 내역</h2>
+      <span id="july-filter-label"></span>
+      <span class="count-badge" id="july-count-label"></span>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="july-search" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="julyApplyFilter()">
+    </div>
+    <div id="july-card-list"></div>
+  </div>
+</div>
+</div><!-- /panel-july -->
+
 <!-- QUALITY MANAGEMENT PANEL -->
 <div id="panel-quality" class="panel">
   <div class="qi-panel">
@@ -2835,14 +2869,15 @@ async function saveDisputeNote(pNumber, month, input) {
 
 /* ── TAB SWITCHING ── */
 function switchTab(tab) {
-  const tabs = ['june','analysis','quality','guide'];
+  const tabs = ['june','july','analysis','quality','guide'];
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
-  ['june','analysis','quality','guide'].forEach(id => {
+  ['june','july','analysis','quality','guide'].forEach(id => {
     const el = document.getElementById('panel-'+id);
     if (el) el.classList.toggle('active', id===tab);
   });
   if (tab==='analysis') loadAnalysisSummary();
   if (tab==='june') loadJuneData();
+  if (tab==='july') loadJulyData();
   if (tab==='quality') loadQiIssues();
   if (tab==='guide') loadGuide();
 }
@@ -3211,6 +3246,151 @@ function _renderSummaryTables(cards, targetId) {
   </div>`;
 }
 
+/* ── JULY TAB ── */
+let _julyCards = [], _julyLoaded = false, _julyTeam = 'all', _julyTypeFilter = null, _julyProdFilter = null;
+
+function julySetTeam(team) {
+  _julyTeam = team;
+  _julyTypeFilter = null;
+  _julyProdFilter = null;
+  document.querySelectorAll('.july-team-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.textContent.trim() === '전체' && team === 'all') b.classList.add('active');
+    if (b.classList.contains('omni') && team === 'omni') b.classList.add('active');
+    if (b.classList.contains('ext') && team === 'ext') b.classList.add('active');
+  });
+  renderJulyPanel();
+}
+
+function _julyTeamFilter(card) {
+  if (_julyTeam === 'all') return true;
+  if (_julyTeam === 'omni') return card.team === '옴니';
+  if (_julyTeam === 'ext') return card.team === '외부';
+  return true;
+}
+
+async function loadJulyData() {
+  if (!_sb) return;
+  if (_julyLoaded) { renderJulyPanel(); return; }
+  const {data} = await _sb.from('haja_as_cards').select('*').eq('month','26.07월').order('type');
+  _julyCards = data || [];
+  _julyLoaded = true;
+  renderJulyPanel();
+}
+
+function renderJulyPanel() {
+  const base = _julyCards.filter(_julyTeamFilter);
+  const total = base.length;
+  const totalAmt = base.reduce((s,c) => s+(c.amount||0), 0);
+  const types = [...new Set(base.map(c=>c.type))].filter(Boolean);
+  const maxCount = Math.max(...types.map(t => base.filter(c=>c.type===t).length), 1);
+
+  document.getElementById('july-kpis').innerHTML = `
+    <div class="kpi kpi-accent"><div class="v">${total}</div><div class="l">총 접수건</div></div>
+    <div class="kpi"><div class="v">${totalAmt.toLocaleString()}</div><div class="l">총 금액 (원)</div></div>
+    <div class="kpi"><div class="v">${types.length}</div><div class="l">불만 유형</div></div>
+    <div class="kpi"><div class="v">${total ? Math.round(totalAmt/total).toLocaleString() : 0}</div><div class="l">건당 평균 (원)</div></div>`;
+
+  const typeOrder = ['A','B','C','D','E','F','G','H','I','J','K'];
+  const sortedTypes = types.sort((a,b) => {
+    const ai = typeOrder.findIndex(x => a.startsWith(x+'.'));
+    const bi = typeOrder.findIndex(x => b.startsWith(x+'.'));
+    return ai - bi;
+  });
+
+  let sidebarHtml = '<h2>불만 유형 필터</h2><button class="reset-btn" onclick="julyResetAll()">전체 보기</button>';
+  sortedTypes.forEach(t => {
+    const col = TYPE_COLORS[t] || '#ABAEB1';
+    const cnt = base.filter(c=>c.type===t).length;
+    const amt = base.filter(c=>c.type===t).reduce((s,c)=>s+(c.amount||0),0);
+    const pct = total ? (cnt/total*100).toFixed(1) : 0;
+    const barW = Math.round(cnt/maxCount*100);
+    sidebarHtml += `<div class="type-card" onclick="julyFilterType('${t.replace(/'/g,"\\'")}')\" style="--accent:${col}" data-type="${t}">
+      <div class="type-dot" style="background:${col}"></div>
+      <div class="type-info">
+        <div class="type-name">${t}</div>
+        <div class="type-bar-wrap"><div class="type-bar" style="width:${barW}%;background:${col}"></div></div>
+        <div class="type-meta"><span class="badge" style="background:${col}">${cnt}건</span> <span class="amt">${amt.toLocaleString()}원</span> <span class="pct">${pct}%</span></div>
+      </div></div>`;
+  });
+
+  const prods = {};
+  base.forEach(c => { if(c.product) prods[c.product] = (prods[c.product]||0)+1; });
+  const sortedProds = Object.entries(prods).sort((a,b)=>b[1]-a[1]);
+  const maxProd = sortedProds[0]?.[1] || 1;
+  const totalProdCnt = sortedProds.reduce((s,[,c])=>s+c, 0) || 1;
+  sidebarHtml += '<div class="section-title">제품별 접수 건수</div>';
+  sortedProds.forEach(([p,cnt]) => {
+    sidebarHtml += `<div class="prod-row" data-prod="${p}" onclick="julyFilterProd('${p.replace(/'/g,"\\'")}')"><span class="prod-name">${p}</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:${Math.round(cnt/maxProd*100)}%"></div></div><span class="prod-cnt">${cnt}건<span class="prod-pct">${(cnt/totalProdCnt*100).toFixed(1)}%</span></span></div>`;
+  });
+
+  document.getElementById('july-sidebar').innerHTML = sidebarHtml;
+  _renderSummaryTables(base, 'july-summary');
+  julyApplyFilter();
+}
+
+function julyFilterType(t) {
+  _julyTypeFilter = t;
+  _julyProdFilter = null;
+  document.getElementById('july-filter-label').textContent = t;
+  document.querySelectorAll('#july-sidebar .type-card').forEach(el => el.classList.toggle('active', el.dataset.type===t));
+  document.querySelectorAll('#july-sidebar .prod-row').forEach(el => el.classList.remove('active'));
+  julyApplyFilter();
+}
+
+function julyFilterProd(p) {
+  _julyProdFilter = p;
+  _julyTypeFilter = null;
+  document.getElementById('july-filter-label').textContent = p;
+  document.querySelectorAll('#july-sidebar .prod-row').forEach(el => el.classList.toggle('active', el.dataset.prod===p));
+  document.querySelectorAll('#july-sidebar .type-card').forEach(el => el.classList.remove('active'));
+  julyApplyFilter();
+}
+
+function julyResetAll() {
+  _julyTypeFilter = null;
+  _julyProdFilter = null;
+  document.getElementById('july-filter-label').textContent = '';
+  document.getElementById('july-search').value = '';
+  document.querySelectorAll('#july-sidebar .type-card, #july-sidebar .prod-row').forEach(el => el.classList.remove('active'));
+  julyApplyFilter();
+}
+
+function julyApplyFilter() {
+  const search = (document.getElementById('july-search')?.value||'').toLowerCase();
+  const base = _julyCards.filter(_julyTeamFilter);
+  const filtered = base.filter(c => {
+    if (_julyTypeFilter && c.type !== _julyTypeFilter) return false;
+    if (_julyProdFilter && c.product !== _julyProdFilter) return false;
+    if (search && ![c.p_number,c.product,c.customer,c.part,c.customer_request,c.inspection_action].some(v=>v&&v.toLowerCase().includes(search))) return false;
+    return true;
+  });
+  document.getElementById('july-count-label').textContent = `${filtered.length}건`;
+  document.getElementById('july-card-list').innerHTML = filtered.map(c => {
+    const col = TYPE_COLORS[c.type] || '#ABAEB1';
+    const teamBadge = c.team && c.team !== '미확인' && c.team !== '품질'
+      ? `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${c.team==='옴니'?'#dbeafe':'#ede9fe'};color:${c.team==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${c.team}</span>` : '';
+    return `<div class="row-card" data-type="${c.type||''}" data-prod="${c.product||''}">
+      <div class="row-left">
+        <span class="tag" style="background:${col}">${c.type||''}</span>
+        <div class="row-num">${c.p_number||''}${teamBadge}</div>
+        <div class="row-customer">${c.customer||''}</div>
+        ${c.visit_team ? `<div class="row-visit-team"><span>${c.visit_team}</span></div>` : ''}
+        <div class="row-prod">${c.product||''}</div>
+        <div class="row-part">부위: ${c.part||''}</div>
+      </div>
+      <div class="row-center">
+        <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${c.inspection_action||''}</span></div>
+        <div class="row-req"><strong>고객 요구:</strong> ${c.customer_request||''}</div>
+      </div>
+      <div class="row-right">
+        <div class="row-amount">${(c.amount||0).toLocaleString()}<span>원</span></div>
+        <div class="row-count">${c.bundle_count||'1건'} 묶음</div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
+}
+
 let _analysisCards = [], _analysisLoaded = false;
 async function loadAnalysisSummary() {
   if (!_sb) return;
@@ -3316,6 +3496,7 @@ document.addEventListener('click', closeDlMenu);
 
 function _getCurrentMonth() {
   if (document.getElementById('panel-june')?.classList.contains('active')) return '26.06월';
+  if (document.getElementById('panel-july')?.classList.contains('active')) return '26.07월';
   if (document.getElementById('panel-analysis')?.classList.contains('active')) return '26.05월';
   return null;
 }
