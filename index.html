@@ -3410,13 +3410,16 @@ function julyApplyFilter() {
     const col = TYPE_COLORS[c.type] || '#ABAEB1';
     const teamBadge = c.team && c.team !== '미확인' && c.team !== '품질'
       ? `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${c.team==='옴니'?'#dbeafe':'#ede9fe'};color:${c.team==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${c.team}</span>` : '';
+    const prodInner = c.product
+      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${c.id}','${c.product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${c.product} <span class="june-edit-hint">✎</span></span>`
+      : _julyProdSelect(c.id, '');
     return `<div class="row-card" data-type="${c.type||''}" data-prod="${c.product||''}">
       <div class="row-left">
         <span class="tag" style="background:${col}">${c.type||''}</span>
         <div class="row-num">${c.p_number||''}${teamBadge}</div>
         <div class="row-customer">${c.customer||''}</div>
         ${c.visit_team ? `<div class="row-visit-team"><span>${c.visit_team}</span></div>` : ''}
-        <div class="row-prod">${c.product||''}</div>
+        <div class="row-prod" id="july-prod-wrap-${c.id}">${prodInner}</div>
         <div class="row-part">부위: ${c.part||''}</div>
       </div>
       <div class="row-center">
@@ -3429,6 +3432,46 @@ function julyApplyFilter() {
       </div>
     </div>`;
   }).join('') || '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
+}
+
+function _julyProdSelect(id, cur) {
+  return `<select class="june-prod-select" onchange="julySetProduct('${id}',this.value)" onblur="julyBlurProd('${id}','${cur}')">
+    <option value="">제품 선택…</option>
+    ${_JUNE_PROD_LIST.map(p=>`<option value="${p}"${p===cur?' selected':''}>${p}</option>`).join('')}
+  </select>`;
+}
+
+function julyShowProdEdit(id, cur) {
+  const wrap = document.getElementById(`july-prod-wrap-${id}`);
+  if (!wrap) return;
+  wrap.innerHTML = _julyProdSelect(id, cur);
+  wrap.querySelector('select').focus();
+}
+
+function julyBlurProd(id, cur) {
+  const wrap = document.getElementById(`july-prod-wrap-${id}`);
+  if (!wrap) return;
+  const sel = wrap.querySelector('select');
+  if (sel && !sel.value) {
+    wrap.innerHTML = cur
+      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${id}','${cur.replace(/'/g,"\\'")}')" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
+      : _julyProdSelect(id, '');
+  }
+}
+
+async function julySetProduct(id, product) {
+  if (!_sb || !product) return;
+  const wrap = document.getElementById(`july-prod-wrap-${id}`);
+  if (wrap) wrap.style.opacity = '0.5';
+  const {error} = await _sb.from('haja_as_cards').update({product}).eq('id', id);
+  if (!error) {
+    const card = _julyCards.find(c => c.id === id);
+    if (card) card.product = product;
+    renderJulyPanel();
+  } else {
+    if (wrap) wrap.style.opacity = '1';
+    alert('저장 실패: ' + error.message);
+  }
 }
 
 /* ── COMPARE TAB ── */
