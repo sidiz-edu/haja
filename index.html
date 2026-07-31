@@ -3497,56 +3497,41 @@ function julyApplyFilter() {
   }
   document.getElementById('july-dispute-tab-bar').style.display = 'none';
 
-  const base = _julyCards.filter(_julyTeamFilter);
-  const allGrpOrder = [], allGrpMap = {};
-  base.forEach(c => { if(!allGrpMap[c.p_number]){allGrpMap[c.p_number]=[];allGrpOrder.push(c.p_number);}allGrpMap[c.p_number].push(c); });
-  const grpOrder = allGrpOrder.filter(pnum => {
-    const rows = allGrpMap[pnum];
-    if (_julyTypeFilter && !rows.some(r=>r.type===_julyTypeFilter)) return false;
-    if (_julyProdFilter && !rows.some(r=>r.product===_julyProdFilter)) return false;
-    if (search && !rows.some(r=>[r.p_number,r.product,r.customer,r.part,r.customer_request,r.inspection_action].some(v=>v&&v.toLowerCase().includes(search)))) return false;
-    return true;
-  });
-  document.getElementById('july-count-label').textContent = `${grpOrder.length}건`;
-  document.getElementById('july-card-list').innerHTML = grpOrder.map(pnum => {
-    const rows = allGrpMap[pnum];
-    const rep = rows[0];
-    const gtypes = [...new Set(rows.map(r=>r.type).filter(Boolean))];
-    const col = TYPE_COLORS[gtypes[0]] || '#ABAEB1';
-    const typeTag = gtypes.length > 1
-      ? `<span class="tag" style="background:${col}">${gtypes[0]} <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span></span>`
-      : `<span class="tag" style="background:${col}">${gtypes[0]||''}</span>`;
-    const totalAmt = rows.reduce((s,r)=>s+(r.amount||0),0);
-    const product = rows.find(r=>r.product)?.product||'';
-    const teams = [...new Set(rows.map(r=>r.team).filter(t=>t&&t!=='미확인'&&t!=='품질'))];
-    const teamBadge = teams.map(t=>`<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${t==='옴니'?'#dbeafe':'#ede9fe'};color:${t==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${t}</span>`).join('');
+  let filtered7 = _julyCards.filter(_julyTeamFilter);
+  if (_julyTypeFilter) filtered7 = filtered7.filter(c=>c.type===_julyTypeFilter);
+  if (_julyProdFilter) filtered7 = filtered7.filter(c=>c.product===_julyProdFilter);
+  if (search) filtered7 = filtered7.filter(c=>[c.p_number,c.product,c.customer,c.part,c.customer_request,c.inspection_action].some(v=>v&&v.toLowerCase().includes(search)));
+
+  document.getElementById('july-count-label').textContent = `${filtered7.length}건`;
+  document.getElementById('july-card-list').innerHTML = filtered7.map(c => {
+    const col = TYPE_COLORS[c.type] || '#ABAEB1';
+    const typeTag = `<span class="tag" style="background:${col}">${c.type||''}</span>`;
+    const product = c.product||'';
     const prodInner = product
-      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${pnum}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
-      : _julyProdSelect(pnum, '');
-    const partsList = [...new Set(rows.map(r=>r.part).filter(Boolean))];
-    const actionsList = rows.map(r=>r.inspection_action).filter(Boolean);
-    const isFlagged7 = rows.some(r=>_flaggedSet.has(r.id));
-    const cardIdsJson7 = JSON.stringify(rows.map(r=>r.id));
-    const cntBadge = rows.length > 1 ? `<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b;margin-left:4px;font-weight:600">${rows.length}건</span>` : '';
-    return `<div class="row-card${isFlagged7?' flagged-card':''}" data-type="${gtypes[0]||''}" data-prod="${product}">
+      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${c.p_number}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
+      : _julyProdSelect(c.p_number, '');
+    const teamVal = (c.team&&c.team!=='미확인'&&c.team!=='품질') ? `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${c.team==='옴니'?'#dbeafe':'#ede9fe'};color:${c.team==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${c.team}</span>` : '';
+    const isFlagged7 = _flaggedSet.has(c.id);
+    const cidJson = JSON.stringify([c.id]);
+    return `<div class="row-card${isFlagged7?' flagged-card':''}" data-type="${c.type||''}" data-prod="${product}">
       <div class="row-left">
         ${typeTag}
-        <div class="row-num">${pnum}${cntBadge}${teamBadge}</div>
-        <div class="row-customer">${maskName(rep.customer||'')}</div>
-        ${rep.visit_team ? `<div class="row-visit-team"><span>${rep.visit_team}</span></div>` : ''}
-        <div class="row-prod" id="july-prod-wrap-${pnum}">${prodInner}</div>
-        <div class="row-part">부위: ${partsList.join(' · ')}</div>
+        <div class="row-num">${c.p_number}${teamVal}</div>
+        <div class="row-customer">${maskName(c.customer||'')}</div>
+        ${c.visit_team ? `<div class="row-visit-team"><span>${c.visit_team}</span></div>` : ''}
+        <div class="row-prod" id="july-prod-wrap-${c.id}">${prodInner}</div>
+        ${c.part ? `<div class="row-part">부위: ${c.part}</div>` : ''}
       </div>
       <div class="row-center">
-        <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${actionsList.join('<br>')}</span></div>
-        <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
+        <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${c.inspection_action||''}</span></div>
+        <div class="row-req"><strong>고객 요구:</strong> ${c.customer_request||''}</div>
       </div>
       <div class="row-right">
-        <button class="flag-btn${isFlagged7?' flagged':''}" onclick="toggleFlag(${cardIdsJson7},'26.07월',this)" title="${isFlagged7?'이의제기 해제':'이의제기 표시'}">
+        <button class="flag-btn${isFlagged7?' flagged':''}" onclick="toggleFlag(${cidJson},'26.07월',this)" title="${isFlagged7?'이의제기 해제':'이의제기 표시'}">
           <svg viewBox="0 0 16 16" fill="${isFlagged7?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
         </button>
-        <div class="row-amount">${totalAmt.toLocaleString()}<span>원</span></div>
-        <div class="row-count">${rows.length > 1 ? rows.length+'건 묶음' : rep.bundle_count||'1건'}</div>
+        <div class="row-amount">${(c.amount||0).toLocaleString()}<span>원</span></div>
+        <div class="row-count">${c.bundle_count||'1건'}</div>
       </div>
     </div>`;
   }).join('') || '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
