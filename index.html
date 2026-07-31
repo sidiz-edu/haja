@@ -3576,7 +3576,6 @@ function julyApplyFilter() {
       : _julyProdSelect(c.id, c.p_number, '');
     const teamVal = (c.team&&c.team!=='미확인'&&c.team!=='품질') ? `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${c.team==='옴니'?'#dbeafe':'#ede9fe'};color:${c.team==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${c.team}</span>` : '';
     const isFlagged7 = _flaggedSet.has(c.id);
-    const cidJson = JSON.stringify([c.id]);
     return `<div class="row-card${isFlagged7?' flagged-card':''}" data-type="${c.type||''}" data-prod="${product}">
       <div class="row-left">
         ${typeTag}
@@ -3591,7 +3590,7 @@ function julyApplyFilter() {
         <div class="row-req"><strong>고객 요구:</strong> ${c.customer_request||''}</div>
       </div>
       <div class="row-right">
-        <button class="flag-btn${isFlagged7?' flagged':''}" onclick="toggleFlag(${cidJson},'26.07월',this)" title="${isFlagged7?'이의제기 해제':'이의제기 표시'}">
+        <button class="flag-btn${isFlagged7?' flagged':''}" onclick="toggleFlag('${c.id}','26.07월',this)" title="${isFlagged7?'이의제기 해제':'이의제기 표시'}">
           <svg viewBox="0 0 16 16" fill="${isFlagged7?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
         </button>
         <div class="row-amount">${(c.amount||0).toLocaleString()}<span>원</span></div>
