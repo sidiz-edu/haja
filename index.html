@@ -3351,17 +3351,14 @@ async function loadJulyData() {
 
 function renderJulyPanel() {
   const base = _julyCards.filter(_julyTeamFilter);
-  const _jpGroups = {};
-  base.forEach(c => { (_jpGroups[c.p_number]=_jpGroups[c.p_number]||[]).push(c); });
-  const total = Object.keys(_jpGroups).length;
+  const total = base.length;
   const totalAmt = base.reduce((s,c) => s+(c.amount||0), 0);
   const types = [...new Set(base.map(c=>c.type))].filter(Boolean);
-  const maxCount = Math.max(...types.map(t => Object.values(_jpGroups).filter(rows=>rows.some(r=>r.type===t)).length), 1);
+  const maxCount = Math.max(...types.map(t => base.filter(c=>c.type===t).length), 1);
 
   const julyPassIds = [..._flaggedSet].filter(id=>base.some(c=>c.id===id)&&_disputeResultMap.get(id)==='pass');
   const removedAmt = julyPassIds.reduce((s,id)=>s+(_disputeRemovedAmtMap.get(id)||0),0);
-  const removedPnums7 = new Set(julyPassIds.map(id=>base.find(c=>c.id===id)?.p_number));
-  const removedCnt = removedPnums7.size;
+  const removedCnt = julyPassIds.length;
   const finalAmt = totalAmt - removedAmt;
   const finalCnt = total - removedCnt;
 
@@ -3403,7 +3400,7 @@ function renderJulyPanel() {
   sidebarHtml += '<h2>불만 유형 필터</h2><button class="reset-btn" onclick="julyResetAll()">전체 보기</button>';
   sortedTypes.forEach(t => {
     const col = TYPE_COLORS[t] || '#ABAEB1';
-    const cnt = Object.values(_jpGroups).filter(rows=>rows.some(r=>r.type===t)).length;
+    const cnt = base.filter(c=>c.type===t).length;
     const amt = base.filter(c=>c.type===t).reduce((s,c)=>s+(c.amount||0),0);
     const pct = total ? (cnt/total*100).toFixed(1) : 0;
     const barW = Math.round(cnt/maxCount*100);
@@ -3417,7 +3414,7 @@ function renderJulyPanel() {
   });
 
   const prods = {};
-  Object.values(_jpGroups).forEach(rows => { const p=rows.find(r=>r.product)?.product; if(p) prods[p]=(prods[p]||0)+1; });
+  base.forEach(c => { if(c.product) prods[c.product]=(prods[c.product]||0)+1; });
   const sortedProds = Object.entries(prods).sort((a,b)=>b[1]-a[1]);
   const maxProd = sortedProds[0]?.[1] || 1;
   const totalProdCnt = sortedProds.reduce((s,[,c])=>s+c, 0) || 1;
