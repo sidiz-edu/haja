@@ -2559,58 +2559,49 @@ function startTitleEdit() {
 
 /* ── FLAGS (이의제기) ── */
 let _flaggedSet = new Set(), _flagsLoaded = false;
-const _disputeResultMap = new Map(); // "pnum|month" -> 'pass'|'fail'
-
-const _disputeRemovedAmtMap = new Map(); // "pnum|month" -> removed amount
+const _disputeResultMap = new Map(); // card_id(uuid) -> 'pass'|'fail'
+const _disputeRemovedAmtMap = new Map(); // card_id(uuid) -> removed amount
+const _monthPrefixMap = {}; // month -> prefix (factory 탭 재렌더링용)
 
 async function _ensureFlags() {
   if (!_sb || _flagsLoaded) return;
-  const {data} = await _sb.from('haja_flags').select('p_number,month,dispute_result,dispute_removed_amount');
-  _flaggedSet = new Set((data||[]).map(f => f.p_number+'|'+f.month));
+  const {data} = await _sb.from('haja_flags').select('card_id,month,dispute_result,dispute_removed_amount');
+  _flaggedSet = new Set((data||[]).map(f => f.card_id));
   (data||[]).forEach(f => {
-    const key = f.p_number+'|'+f.month;
-    if (f.dispute_result) _disputeResultMap.set(key, f.dispute_result);
-    else _disputeResultMap.delete(key);
-    if (f.dispute_removed_amount) _disputeRemovedAmtMap.set(key, f.dispute_removed_amount);
-    else _disputeRemovedAmtMap.delete(key);
+    if (f.dispute_result) _disputeResultMap.set(f.card_id, f.dispute_result);
+    else _disputeResultMap.delete(f.card_id);
+    if (f.dispute_removed_amount) _disputeRemovedAmtMap.set(f.card_id, f.dispute_removed_amount);
+    else _disputeRemovedAmtMap.delete(f.card_id);
   });
   _flagsLoaded = true;
 }
 
-async function toggleFlag(pNumber, month, btn) {
+async function toggleFlag(cardIds, month, btn) {
   if (!_sb) return;
-  const key = pNumber+'|'+month;
+  const ids = Array.isArray(cardIds) ? cardIds : [cardIds];
   if (btn) btn.disabled = true;
-  if (_flaggedSet.has(key)) {
-    await _sb.from('haja_flags').delete().eq('p_number', pNumber).eq('month', month);
-    _flaggedSet.delete(key);
+  const alreadyFlagged = ids.some(id => _flaggedSet.has(id));
+  if (alreadyFlagged) {
+    await _sb.from('haja_flags').delete().in('card_id', ids);
+    ids.forEach(id => { _flaggedSet.delete(id); _disputeResultMap.delete(id); _disputeRemovedAmtMap.delete(id); });
   } else {
-    await _sb.from('haja_flags').insert({p_number: pNumber, month});
-    _flaggedSet.add(key);
+    await _sb.from('haja_flags').insert(ids.map(id => ({card_id: id, month})));
+    ids.forEach(id => _flaggedSet.add(id));
   }
   if (btn) btn.disabled = false;
-  _refreshFlagUI(pNumber, month);
+  _rerenderMonthPanel(month);
 }
 
-function _refreshFlagUI(pNumber, month) {
-  const flagged = _flaggedSet.has(pNumber+'|'+month);
-  const listId = month === '26.06월' ? 'june-card-list' : 'cardList';
-  document.querySelectorAll(`#${listId} .row-card`).forEach(rc => {
-    if (rc.querySelector('.row-num')?.textContent.trim() !== pNumber) return;
-    rc.classList.toggle('flagged-card', flagged);
-    const fb = rc.querySelector('.flag-btn');
-    if (fb) {
-      fb.className = 'flag-btn' + (flagged ? ' flagged' : '');
-      fb.title = flagged ? '이의제기 해제' : '이의제기 표시';
-      fb.querySelector('svg')?.setAttribute('fill', flagged ? 'currentColor' : 'none');
-    }
-  });
+function _rerenderMonthPanel(month) {
   if (month === '26.06월' && _juneLoaded) renderJunePanel();
   else if (month === '26.05월' && _analysisLoaded) { _injectAnalysisFlags(); if (_analysisDisputeFilter) analysisFilterDispute(); }
+  else if (month === '26.07월' && _julyLoaded) renderJulyPanel();
+  else { const p=_monthPrefixMap[month]; if(p){const C=p.charAt(0).toUpperCase()+p.slice(1); window['render'+C+'Panel']?.();} }
 }
 
 function renderDisputeCard(it, month, prefix) {
   const col = TYPE_COLORS[it.type] || '#ABAEB1';
+  const cid = it.cardId;
   return `<div class="row-card flagged-card">
     <div class="row-left">
       <span class="tag" style="background:${col}">${it.type||''}</span>
@@ -2624,62 +2615,62 @@ function renderDisputeCard(it, month, prefix) {
       <div class="row-detail"><span class="dl">점검 및 조치</span> <span class="dl-val">${it.inspectionAction||''}</span></div>
       <div class="row-req"><strong>고객 요구:</strong> ${it.customerRequest||''}</div>
       <div class="dispute-note-wrap">
-        <input class="dispute-note-input" id="note-input-${prefix}-${it.pNumber}" placeholder="이의제기 사유 메모 (선택)…"
-          onblur="saveDisputeNote('${it.pNumber}','${month}',this)" onkeydown="if(event.key==='Enter')this.blur()">
-        <div class="dispute-note-status" id="dnote-${it.pNumber}"></div>
+        <input class="dispute-note-input" id="note-input-${prefix}-${cid}" placeholder="이의제기 사유 메모 (선택)…"
+          onblur="saveDisputeNote('${cid}','${month}',this)" onkeydown="if(event.key==='Enter')this.blur()">
+        <div class="dispute-note-status" id="dnote-${cid}"></div>
       </div>
       <div class="attach-wrap">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <label class="attach-add-btn" for="attach-${prefix}-${it.pNumber}" title="사진 또는 영상 첨부">
+          <label class="attach-add-btn" for="attach-${prefix}-${cid}" title="사진 또는 영상 첨부">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l3-3 2 2 3-4 4 5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
             사진 / 영상 첨부
           </label>
           <span style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-display)">영상 최대 50MB · 자동 압축</span>
         </div>
-        <input type="file" id="attach-${prefix}-${it.pNumber}" accept="image/*,video/mp4,video/webm,video/quicktime,.mov,.mp4,.webm" style="display:none" onchange="handleAttachment('${it.pNumber}','${month}','${prefix}',this)">
-        <div class="attach-grid" id="attach-grid-${prefix}-${it.pNumber}"></div>
-        <div class="attach-progress-wrap" id="attach-prog-${prefix}-${it.pNumber}" style="display:none">
-          <div class="attach-progress-bar"><div class="attach-progress-fill" style="width:0%" id="attach-fill-${prefix}-${it.pNumber}"></div></div>
-          <div class="attach-progress-txt" id="attach-ptxt-${prefix}-${it.pNumber}">처리 중…</div>
+        <input type="file" id="attach-${prefix}-${cid}" accept="image/*,video/mp4,video/webm,video/quicktime,.mov,.mp4,.webm" style="display:none" onchange="handleAttachment('${cid}','${month}','${prefix}',this)">
+        <div class="attach-grid" id="attach-grid-${prefix}-${cid}"></div>
+        <div class="attach-progress-wrap" id="attach-prog-${prefix}-${cid}" style="display:none">
+          <div class="attach-progress-bar"><div class="attach-progress-fill" style="width:0%" id="attach-fill-${prefix}-${cid}"></div></div>
+          <div class="attach-progress-txt" id="attach-ptxt-${prefix}-${cid}">처리 중…</div>
         </div>
       </div>
     </div>
     <div class="row-right">
       <div class="dispute-result-wrap">
-        <button class="dispute-result-btn pass" id="result-pass-${prefix}-${it.pNumber}" onclick="saveDisputeResult('${it.pNumber}','${month}','${prefix}','pass')">✓ 통과</button>
-        <button class="dispute-result-btn fail" id="result-fail-${prefix}-${it.pNumber}" onclick="saveDisputeResult('${it.pNumber}','${month}','${prefix}','fail')">✕ 기각</button>
+        <button class="dispute-result-btn pass" id="result-pass-${prefix}-${cid}" onclick="saveDisputeResult('${cid}','${month}','${prefix}','pass')">✓ 통과</button>
+        <button class="dispute-result-btn fail" id="result-fail-${prefix}-${cid}" onclick="saveDisputeResult('${cid}','${month}','${prefix}','fail')">✕ 기각</button>
       </div>
       <div class="dispute-reason-wrap">
         <span class="dispute-reason-label">결정 이유</span>
-        <textarea class="dispute-reason-input" id="reason-input-${prefix}-${it.pNumber}" rows="2" placeholder="결정 이유 메모…"
-          onblur="saveDisputeReason('${it.pNumber}','${month}',this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"></textarea>
+        <textarea class="dispute-reason-input" id="reason-input-${prefix}-${cid}" rows="2" placeholder="결정 이유 메모…"
+          onblur="saveDisputeReason('${cid}','${month}',this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"></textarea>
       </div>
-      <button class="unflag-btn" onclick="toggleFlag('${it.pNumber}','${month}',null)">해제</button>
+      <button class="unflag-btn" onclick="toggleFlag(['${cid}'],'${month}',null)">해제</button>
       <div class="row-amount">${it.amount.toLocaleString()}<span>원</span></div>
-      <div class="row-count">${it.bundleCount}건 묶음</div>
+      <div class="row-count">${it.bundleCount}</div>
     </div>
   </div>`;
 }
 
-async function _loadDisputeData(pnums, month, prefix) {
-  if (!_sb || !pnums.length) return;
-  const {data} = await _sb.from('haja_flags').select('p_number,note,attachments,dispute_result,dispute_reason').in('p_number', pnums).eq('month', month);
+async function _loadDisputeData(cardIds, month, prefix) {
+  if (!_sb || !cardIds.length) return;
+  const {data} = await _sb.from('haja_flags').select('card_id,note,attachments,dispute_result,dispute_reason').in('card_id', cardIds);
   (data||[]).forEach(f => {
-    const noteEl = document.getElementById(`note-input-${prefix}-${f.p_number}`);
+    const noteEl = document.getElementById(`note-input-${prefix}-${f.card_id}`);
     if (noteEl && f.note) noteEl.value = f.note;
-    if (f.attachments?.length) _renderAttachGrid(f.p_number, month, prefix, f.attachments);
+    if (f.attachments?.length) _renderAttachGrid(f.card_id, month, prefix, f.attachments);
     if (f.dispute_result) {
-      _disputeResultMap.set(f.p_number+'|'+month, f.dispute_result);
-      _applyDisputeResultUI(f.p_number, prefix, f.dispute_result);
+      _disputeResultMap.set(f.card_id, f.dispute_result);
+      _applyDisputeResultUI(f.card_id, prefix, f.dispute_result);
     }
-    const reasonEl = document.getElementById(`reason-input-${prefix}-${f.p_number}`);
+    const reasonEl = document.getElementById(`reason-input-${prefix}-${f.card_id}`);
     if (reasonEl && f.dispute_reason) reasonEl.value = f.dispute_reason;
   });
 }
 
-async function saveDisputeReason(pNumber, month, el) {
+async function saveDisputeReason(cardId, month, el) {
   if (!_sb) return;
-  await _sb.from('haja_flags').upsert({p_number: pNumber, month, dispute_reason: el.value||null}, {onConflict: 'p_number,month'});
+  await _sb.from('haja_flags').update({dispute_reason: el.value||null}).eq('card_id', cardId);
 }
 
 function _disputeTabBarHTML(prefix, current) {
@@ -2701,27 +2692,24 @@ function analysisSetDisputeResultFilter(v) {
   analysisFilterDispute();
 }
 
-function _applyDisputeResultUI(pNumber, prefix, result) {
-  document.getElementById(`result-pass-${prefix}-${pNumber}`)?.classList.toggle('active', result === 'pass');
-  document.getElementById(`result-fail-${prefix}-${pNumber}`)?.classList.toggle('active', result === 'fail');
+function _applyDisputeResultUI(cardId, prefix, result) {
+  document.getElementById(`result-pass-${prefix}-${cardId}`)?.classList.toggle('active', result === 'pass');
+  document.getElementById(`result-fail-${prefix}-${cardId}`)?.classList.toggle('active', result === 'fail');
 }
 
-async function saveDisputeResult(pNumber, month, prefix, result) {
-  const key = pNumber+'|'+month;
-  const current = _disputeResultMap.get(key);
+async function saveDisputeResult(cardId, month, prefix, result) {
+  const current = _disputeResultMap.get(cardId);
   const newResult = current === result ? null : result;
-  if (newResult) _disputeResultMap.set(key, newResult);
-  else _disputeResultMap.delete(key);
-  _applyDisputeResultUI(pNumber, prefix, newResult);
-  // 사이드바 카운트 갱신
-  if (month === '26.06월') renderJunePanel();
-  else if (month === '26.05월') _injectAnalysisFlags();
+  if (newResult) _disputeResultMap.set(cardId, newResult);
+  else _disputeResultMap.delete(cardId);
+  _applyDisputeResultUI(cardId, prefix, newResult);
+  _rerenderMonthPanel(month);
   if (!_sb) return;
-  await _sb.from('haja_flags').upsert({p_number: pNumber, month, dispute_result: newResult}, {onConflict: 'p_number,month'});
+  await _sb.from('haja_flags').update({dispute_result: newResult}).eq('card_id', cardId);
 }
 
-function _renderAttachGrid(pNumber, month, prefix, urls) {
-  const grid = document.getElementById(`attach-grid-${prefix}-${pNumber}`);
+function _renderAttachGrid(cardId, month, prefix, urls) {
+  const grid = document.getElementById(`attach-grid-${prefix}-${cardId}`);
   if (!grid) return;
   grid.innerHTML = (urls||[]).map((url, i) => {
     const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
@@ -2733,7 +2721,7 @@ function _renderAttachGrid(pNumber, month, prefix, urls) {
       : `<img src="${url}" onclick="openMediaModal('${url}',false)" alt="첨부 이미지">`;
     return `<div class="attach-thumb">
       ${thumb}
-      <button class="attach-del" onclick="deleteAttachment('${pNumber}','${month}','${prefix}',${i})" title="삭제">✕</button>
+      <button class="attach-del" onclick="deleteAttachment('${cardId}','${month}','${prefix}',${i})" title="삭제">✕</button>
     </div>`;
   }).join('');
 }
@@ -2839,14 +2827,14 @@ async function _compressVideo(file, onProgress) {
   return new Blob([data.buffer], {type: 'video/mp4'});
 }
 
-async function handleAttachment(pNumber, month, prefix, input) {
+async function handleAttachment(cardId, month, prefix, input) {
   const file = input.files[0];
   if (!file) return;
   input.value = '';
 
-  const progWrap = document.getElementById(`attach-prog-${prefix}-${pNumber}`);
-  const fill = document.getElementById(`attach-fill-${prefix}-${pNumber}`);
-  const ptxt = document.getElementById(`attach-ptxt-${prefix}-${pNumber}`);
+  const progWrap = document.getElementById(`attach-prog-${prefix}-${cardId}`);
+  const fill = document.getElementById(`attach-fill-${prefix}-${cardId}`);
+  const ptxt = document.getElementById(`attach-ptxt-${prefix}-${cardId}`);
 
   const setProgress = (pct, msg) => {
     if (!progWrap) return;
@@ -2876,7 +2864,7 @@ async function handleAttachment(pNumber, month, prefix, input) {
     setProgress(85, '업로드 중…');
     const ext = isVideo ? 'mp4' : 'jpg';
     const safeMonth = month.replace(/[^\w.-]/g, '');
-    const path = `dispute/${safeMonth}/${pNumber}/${Date.now()}.${ext}`;
+    const path = `dispute/${safeMonth}/${cardId}/${Date.now()}.${ext}`;
     const {error: upErr} = await _sb.storage.from('haja-attachments').upload(path, blob, {contentType: blob.type || (isVideo?'video/mp4':'image/jpeg')});
     if (upErr) {
       const msg = upErr.message || '';
@@ -2889,15 +2877,15 @@ async function handleAttachment(pNumber, month, prefix, input) {
     const url = urlData.publicUrl;
 
     setProgress(95, 'DB 저장 중…');
-    const {data: flagRow} = await _sb.from('haja_flags').select('attachments').eq('p_number', pNumber).eq('month', month).single();
+    const {data: flagRow} = await _sb.from('haja_flags').select('attachments').eq('card_id', cardId).single();
     const existing = flagRow?.attachments || [];
-    await _sb.from('haja_flags').update({attachments: [...existing, url]}).eq('p_number', pNumber).eq('month', month);
+    await _sb.from('haja_flags').update({attachments: [...existing, url]}).eq('card_id', cardId);
 
     setProgress(100, '완료!');
     setTimeout(() => { if (progWrap) progWrap.style.display = 'none'; }, 1200);
 
-    const {data: fresh} = await _sb.from('haja_flags').select('attachments').eq('p_number', pNumber).eq('month', month).single();
-    _renderAttachGrid(pNumber, month, prefix, fresh?.attachments || []);
+    const {data: fresh} = await _sb.from('haja_flags').select('attachments').eq('card_id', cardId).single();
+    _renderAttachGrid(cardId, month, prefix, fresh?.attachments || []);
 
   } catch(e) {
     if (progWrap) progWrap.style.display = 'none';
@@ -2905,26 +2893,25 @@ async function handleAttachment(pNumber, month, prefix, input) {
   }
 }
 
-async function deleteAttachment(pNumber, month, prefix, idx) {
+async function deleteAttachment(cardId, month, prefix, idx) {
   if (!confirm('첨부 파일을 삭제할까요?')) return;
-  const {data: flagRow} = await _sb.from('haja_flags').select('attachments').eq('p_number', pNumber).eq('month', month).single();
+  const {data: flagRow} = await _sb.from('haja_flags').select('attachments').eq('card_id', cardId).single();
   const urls = [...(flagRow?.attachments || [])];
   const url = urls[idx];
   urls.splice(idx, 1);
-  await _sb.from('haja_flags').update({attachments: urls}).eq('p_number', pNumber).eq('month', month);
-  // Storage 파일도 삭제 (path 추출)
+  await _sb.from('haja_flags').update({attachments: urls}).eq('card_id', cardId);
   try {
     const pathMatch = url.match(/haja-attachments\/(.+)$/);
     if (pathMatch) await _sb.storage.from('haja-attachments').remove([pathMatch[1]]);
   } catch(e) {}
-  _renderAttachGrid(pNumber, month, prefix, urls);
+  _renderAttachGrid(cardId, month, prefix, urls);
 }
 
-async function saveDisputeNote(pNumber, month, input) {
+async function saveDisputeNote(cardId, month, input) {
   if (!_sb) return;
-  const statusEl = document.getElementById('dnote-'+pNumber);
+  const statusEl = document.getElementById('dnote-'+cardId);
   if (statusEl) statusEl.textContent = '저장 중…';
-  const {error} = await _sb.from('haja_flags').update({note: input.value}).eq('p_number', pNumber).eq('month', month);
+  const {error} = await _sb.from('haja_flags').update({note: input.value}).eq('card_id', cardId);
   if (statusEl) { statusEl.textContent = error ? '오류' : '저장됨 ✓'; setTimeout(()=>{ statusEl.textContent=''; },1500); }
 }
 
@@ -3006,9 +2993,10 @@ function renderJunePanel() {
   const types = [...new Set(_juneCards.map(c=>c.type))].filter(Boolean);
   const maxCount = Math.max(...types.map(t => Object.values(_pnGroups).filter(rows=>rows.some(r=>r.type===t)).length), 1);
 
-  const junePassKeys = [..._flaggedSet].filter(k=>k.endsWith('|26.06월') && _disputeResultMap.get(k)==='pass');
-  const removedAmt = junePassKeys.reduce((s,k)=>s+(_disputeRemovedAmtMap.get(k)||0),0);
-  const removedCnt = junePassKeys.length;
+  const junePassIds = [..._flaggedSet].filter(id=>_juneCards.some(c=>c.id===id)&&_disputeResultMap.get(id)==='pass');
+  const removedAmt = junePassIds.reduce((s,id)=>s+(_disputeRemovedAmtMap.get(id)||0),0);
+  const removedPnums = new Set(junePassIds.map(id=>_juneCards.find(c=>c.id===id)?.p_number));
+  const removedCnt = removedPnums.size;
   const finalAmt = totalAmt - removedAmt;
   const finalCnt = total - removedCnt;
 
@@ -3029,10 +3017,10 @@ function renderJunePanel() {
     return ai - bi;
   });
 
-  const disputeKeys = [..._flaggedSet].filter(k=>k.endsWith('|26.06월'));
-  const disputeCount = disputeKeys.length;
-  const passCount = disputeKeys.filter(k=>_disputeResultMap.get(k)==='pass').length;
-  const failCount = disputeKeys.filter(k=>_disputeResultMap.get(k)==='fail').length;
+  const juneFlaggedIds = [..._flaggedSet].filter(id=>_juneCards.some(c=>c.id===id));
+  const disputeCount = new Set(juneFlaggedIds.map(id=>_juneCards.find(c=>c.id===id)?.p_number)).size;
+  const passCount = juneFlaggedIds.filter(id=>_disputeResultMap.get(id)==='pass').length;
+  const failCount = juneFlaggedIds.filter(id=>_disputeResultMap.get(id)==='fail').length;
   let sidebarHtml = '';
   if (disputeCount > 0 || _juneDisputeFilter) {
     const subTxt = (passCount||failCount)
@@ -3123,30 +3111,22 @@ function juneApplyFilter() {
   const search = (document.getElementById('june-search')?.value||'').toLowerCase();
 
   if (_juneDisputeFilter) {
-    const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|26.06월')).map(k=>k.split('|')[0]));
-    const byPnum = {};
-    _juneCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
-    let items = Object.keys(byPnum).map(pnum => {
-      const rows = byPnum[pnum], rep = rows[0];
-      return {pNumber:pnum, type:rep.type, customer:rep.customer, visitTeam:rep.visit_team, product:rep.product, part:rep.part,
-        customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
-        amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
-    }).filter(it => !search || [it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
-    // 결과 필터
+    let items = _juneCards.filter(c=>_flaggedSet.has(c.id)).map(c=>({
+      cardId:c.id, pNumber:c.p_number, type:c.type, customer:c.customer,
+      visitTeam:c.visit_team, product:c.product, part:c.part,
+      customerRequest:c.customer_request, inspectionAction:c.inspection_action,
+      amount:c.amount||0, bundleCount:c.bundle_count||'1건'
+    })).filter(it=>!search||[it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
     if (_juneDisputeResultFilter !== 'all') {
-      items = items.filter(it => _disputeResultMap.get(it.pNumber+'|26.06월') === _juneDisputeResultFilter);
+      items = items.filter(it=>_disputeResultMap.get(it.cardId)===_juneDisputeResultFilter);
     }
-    // 탭바 렌더링
     const tabBar = document.getElementById('june-dispute-tab-bar');
-    if (tabBar) {
-      tabBar.style.display = '';
-      tabBar.innerHTML = _disputeTabBarHTML('june', _juneDisputeResultFilter);
-    }
+    if (tabBar) { tabBar.style.display=''; tabBar.innerHTML=_disputeTabBarHTML('june',_juneDisputeResultFilter); }
     document.getElementById('june-count-label').textContent = `${items.length}건`;
     document.getElementById('june-card-list').innerHTML = items.length
-      ? items.map(it => renderDisputeCard(it,'26.06월','june')).join('')
+      ? items.map(it=>renderDisputeCard(it,'26.06월','june')).join('')
       : '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">해당하는 이의제기 항목이 없습니다</div>';
-    if (items.length) _loadDisputeData(items.map(i=>i.pNumber),'26.06월','june');
+    if (items.length) _loadDisputeData(items.map(i=>i.cardId),'26.06월','june');
     return;
   }
   document.getElementById('june-dispute-tab-bar').style.display = 'none';
@@ -3174,7 +3154,8 @@ function juneApplyFilter() {
     const prodInner = product
       ? `<span class="june-prod-txt" onclick="juneShowProdEdit('${pnum}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
       : _juneProdSelect(pnum, '');
-    const isFlagged = _flaggedSet.has(pnum+'|26.06월');
+    const isFlagged = rows.some(r=>_flaggedSet.has(r.id));
+    const cardIdsJson = JSON.stringify(rows.map(r=>r.id));
     const partsList = [...new Set(rows.map(r=>r.part).filter(Boolean))];
     const actionsList = rows.map(r=>r.inspection_action).filter(Boolean);
     const cntBadge = rows.length > 1 ? `<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b;margin-left:4px;font-weight:600">${rows.length}건</span>` : '';
@@ -3192,7 +3173,7 @@ function juneApplyFilter() {
         <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
       </div>
       <div class="row-right">
-        <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag('${pnum}','26.06월',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
+        <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag(${cardIdsJson},'26.06월',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
           <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
         </button>
         <div class="row-amount">${totalAmt.toLocaleString()}<span>원</span></div>
@@ -3377,9 +3358,10 @@ function renderJulyPanel() {
   const types = [...new Set(base.map(c=>c.type))].filter(Boolean);
   const maxCount = Math.max(...types.map(t => Object.values(_jpGroups).filter(rows=>rows.some(r=>r.type===t)).length), 1);
 
-  const julyPassKeys = [..._flaggedSet].filter(k=>k.endsWith('|26.07월') && _disputeResultMap.get(k)==='pass');
-  const removedAmt = julyPassKeys.reduce((s,k)=>s+(_disputeRemovedAmtMap.get(k)||0),0);
-  const removedCnt = julyPassKeys.length;
+  const julyPassIds = [..._flaggedSet].filter(id=>base.some(c=>c.id===id)&&_disputeResultMap.get(id)==='pass');
+  const removedAmt = julyPassIds.reduce((s,id)=>s+(_disputeRemovedAmtMap.get(id)||0),0);
+  const removedPnums7 = new Set(julyPassIds.map(id=>base.find(c=>c.id===id)?.p_number));
+  const removedCnt = removedPnums7.size;
   const finalAmt = totalAmt - removedAmt;
   const finalCnt = total - removedCnt;
 
@@ -3400,10 +3382,10 @@ function renderJulyPanel() {
     return ai - bi;
   });
 
-  const disputeKeys7 = [..._flaggedSet].filter(k=>k.endsWith('|26.07월'));
-  const disputeCount7 = disputeKeys7.length;
-  const passCount7 = disputeKeys7.filter(k=>_disputeResultMap.get(k)==='pass').length;
-  const failCount7 = disputeKeys7.filter(k=>_disputeResultMap.get(k)==='fail').length;
+  const julyFlaggedIds = [..._flaggedSet].filter(id=>base.some(c=>c.id===id));
+  const disputeCount7 = new Set(julyFlaggedIds.map(id=>base.find(c=>c.id===id)?.p_number)).size;
+  const passCount7 = julyFlaggedIds.filter(id=>_disputeResultMap.get(id)==='pass').length;
+  const failCount7 = julyFlaggedIds.filter(id=>_disputeResultMap.get(id)==='fail').length;
   let sidebarHtml = '';
   if (disputeCount7 > 0 || _julyDisputeFilter) {
     const subTxt7 = (passCount7||failCount7)
@@ -3494,26 +3476,23 @@ function julyApplyFilter() {
   const search = (document.getElementById('july-search')?.value||'').toLowerCase();
 
   if (_julyDisputeFilter) {
-    const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|26.07월')).map(k=>k.split('|')[0]));
-    const teamBase = _julyCards.filter(_julyTeamFilter);
-    const byPnum = {};
-    teamBase.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
-    let items = Object.keys(byPnum).map(pnum => {
-      const rows = byPnum[pnum], rep = rows[0];
-      return {pNumber:pnum, type:rep.type, customer:rep.customer, visitTeam:rep.visit_team, product:rep.product, part:rep.part,
-        customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
-        amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
-    }).filter(it => !search || [it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
+    const teamBase7 = _julyCards.filter(_julyTeamFilter);
+    let items = teamBase7.filter(c=>_flaggedSet.has(c.id)).map(c=>({
+      cardId:c.id, pNumber:c.p_number, type:c.type, customer:c.customer,
+      visitTeam:c.visit_team, product:c.product, part:c.part,
+      customerRequest:c.customer_request, inspectionAction:c.inspection_action,
+      amount:c.amount||0, bundleCount:c.bundle_count||'1건'
+    })).filter(it=>!search||[it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
     if (_julyDisputeResultFilter !== 'all') {
-      items = items.filter(it => _disputeResultMap.get(it.pNumber+'|26.07월') === _julyDisputeResultFilter);
+      items = items.filter(it=>_disputeResultMap.get(it.cardId)===_julyDisputeResultFilter);
     }
     const tabBar = document.getElementById('july-dispute-tab-bar');
-    if (tabBar) { tabBar.style.display = ''; tabBar.innerHTML = _disputeTabBarHTML('july', _julyDisputeResultFilter); }
+    if (tabBar) { tabBar.style.display=''; tabBar.innerHTML=_disputeTabBarHTML('july',_julyDisputeResultFilter); }
     document.getElementById('july-count-label').textContent = `${items.length}건`;
     document.getElementById('july-card-list').innerHTML = items.length
-      ? items.map(it => renderDisputeCard(it,'26.07월','july')).join('')
+      ? items.map(it=>renderDisputeCard(it,'26.07월','july')).join('')
       : '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">해당하는 이의제기 항목이 없습니다</div>';
-    if (items.length) _loadDisputeData(items.map(i=>i.pNumber),'26.07월','july');
+    if (items.length) _loadDisputeData(items.map(i=>i.cardId),'26.07월','july');
     return;
   }
   document.getElementById('july-dispute-tab-bar').style.display = 'none';
@@ -3546,8 +3525,10 @@ function julyApplyFilter() {
       : _julyProdSelect(pnum, '');
     const partsList = [...new Set(rows.map(r=>r.part).filter(Boolean))];
     const actionsList = rows.map(r=>r.inspection_action).filter(Boolean);
+    const isFlagged7 = rows.some(r=>_flaggedSet.has(r.id));
+    const cardIdsJson7 = JSON.stringify(rows.map(r=>r.id));
     const cntBadge = rows.length > 1 ? `<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b;margin-left:4px;font-weight:600">${rows.length}건</span>` : '';
-    return `<div class="row-card" data-type="${gtypes[0]||''}" data-prod="${product}">
+    return `<div class="row-card${isFlagged7?' flagged-card':''}" data-type="${gtypes[0]||''}" data-prod="${product}">
       <div class="row-left">
         ${typeTag}
         <div class="row-num">${pnum}${cntBadge}${teamBadge}</div>
@@ -3561,6 +3542,9 @@ function julyApplyFilter() {
         <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
       </div>
       <div class="row-right">
+        <button class="flag-btn${isFlagged7?' flagged':''}" onclick="toggleFlag(${cardIdsJson7},'26.07월',this)" title="${isFlagged7?'이의제기 해제':'이의제기 표시'}">
+          <svg viewBox="0 0 16 16" fill="${isFlagged7?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
+        </button>
         <div class="row-amount">${totalAmt.toLocaleString()}<span>원</span></div>
         <div class="row-count">${rows.length > 1 ? rows.length+'건 묶음' : rep.bundle_count||'1건'}</div>
       </div>
@@ -3614,6 +3598,7 @@ async function julySetProduct(pnum, product) {
 function _setupMonthTab(cfg) {
   const {month, prefix, teams, onDataLoaded} = cfg;
   const Cap = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  _monthPrefixMap[month] = prefix;
 
   let _cards=[], _loaded=false, _typeFilter=null, _prodFilter=null;
   let _disputeFilter=false, _disputeResultFilter='all', _team='all';
@@ -3644,9 +3629,10 @@ function _setupMonthTab(cfg) {
     const types = [...new Set(base.map(c=>c.type))].filter(Boolean);
     const maxCount = Math.max(...types.map(t=>Object.values(grps).filter(rows=>rows.some(r=>r.type===t)).length),1);
 
-    const passKeys = [..._flaggedSet].filter(k=>k.endsWith('|'+month)&&_disputeResultMap.get(k)==='pass');
-    const removedAmt = passKeys.reduce((s,k)=>s+(_disputeRemovedAmtMap.get(k)||0),0);
-    const removedCnt = passKeys.length;
+    const passIds = [..._flaggedSet].filter(id=>base.some(c=>c.id===id)&&_disputeResultMap.get(id)==='pass');
+    const removedAmt = passIds.reduce((s,id)=>s+(_disputeRemovedAmtMap.get(id)||0),0);
+    const removedPnumsSet = new Set(passIds.map(id=>base.find(c=>c.id===id)?.p_number));
+    const removedCnt = removedPnumsSet.size;
     const finalAmt = totalAmt-removedAmt, finalCnt = total-removedCnt;
 
     const kpiEl = document.getElementById(prefix+'-kpis');
@@ -3663,8 +3649,10 @@ function _setupMonthTab(cfg) {
     const typeOrder=['A','B','C','D','E','F','G','H','I','J','K'];
     types.sort((a,b)=>typeOrder.findIndex(x=>a.startsWith(x+'.'))-typeOrder.findIndex(x=>b.startsWith(x+'.')));
 
-    const dKeys=[..._flaggedSet].filter(k=>k.endsWith('|'+month));
-    const dCnt=dKeys.length, pCnt=dKeys.filter(k=>_disputeResultMap.get(k)==='pass').length, fCnt=dKeys.filter(k=>_disputeResultMap.get(k)==='fail').length;
+    const dIds=[..._flaggedSet].filter(id=>base.some(c=>c.id===id));
+    const dCnt=new Set(dIds.map(id=>base.find(c=>c.id===id)?.p_number)).size;
+    const pCnt=dIds.filter(id=>_disputeResultMap.get(id)==='pass').length;
+    const fCnt=dIds.filter(id=>_disputeResultMap.get(id)==='fail').length;
     let sb='';
     if (dCnt>0||_disputeFilter) {
       const sub=(pCnt||fCnt)?`<div class="dispute-result-sub">${pCnt?`<span style="color:#16a34a">통과 ${pCnt}</span>`:''}${pCnt&&fCnt?' · ':''}${fCnt?`<span style="color:#dc2626">기각 ${fCnt}</span>`:''}</div>`:'';
@@ -3769,17 +3757,14 @@ function _setupMonthTab(cfg) {
   window[prefix+'ApplyFilter'] = function() {
     const search=(document.getElementById(prefix+'-search')?.value||'').toLowerCase();
     if (_disputeFilter) {
-      const flagPnums=new Set([..._flaggedSet].filter(k=>k.endsWith('|'+month)).map(k=>k.split('|')[0]));
-      const base=teams?_cards.filter(_teamFilter):_cards;
-      const byPnum={};
-      base.forEach(c=>{if(flagPnums.has(c.p_number))(byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c);});
-      let items=Object.keys(byPnum).map(pnum=>{
-        const rows=byPnum[pnum],rep=rows[0];
-        return {pNumber:pnum,type:rep.type,customer:rep.customer,visitTeam:rep.visit_team,product:rep.product,part:rep.part,
-          customerRequest:rep.customer_request,inspectionAction:rep.inspection_action,
-          amount:rows.reduce((s,c)=>s+(c.amount||0),0),bundleCount:rows.length};
-      }).filter(it=>!search||[it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
-      if(_disputeResultFilter!=='all') items=items.filter(it=>_disputeResultMap.get(it.pNumber+'|'+month)===_disputeResultFilter);
+      const dBase=teams?_cards.filter(_teamFilter):_cards;
+      let items=dBase.filter(c=>_flaggedSet.has(c.id)).map(c=>({
+        cardId:c.id,pNumber:c.p_number,type:c.type,customer:c.customer,
+        visitTeam:c.visit_team,product:c.product,part:c.part,
+        customerRequest:c.customer_request,inspectionAction:c.inspection_action,
+        amount:c.amount||0,bundleCount:c.bundle_count||'1건'
+      })).filter(it=>!search||[it.pNumber,it.customer,it.product,it.part,it.customerRequest,it.inspectionAction].some(v=>v&&v.toLowerCase().includes(search)));
+      if(_disputeResultFilter!=='all') items=items.filter(it=>_disputeResultMap.get(it.cardId)===_disputeResultFilter);
       const tabBar=document.getElementById(prefix+'-dispute-tab-bar');
       if(tabBar){tabBar.style.display='';tabBar.innerHTML=_disputeTabBarHTML(prefix,_disputeResultFilter);}
       const cl=document.getElementById(prefix+'-count-label'); if(cl) cl.textContent=items.length+'건';
@@ -3787,7 +3772,7 @@ function _setupMonthTab(cfg) {
       if(cardList) cardList.innerHTML=items.length
         ?items.map(it=>renderDisputeCard(it,month,prefix)).join('')
         :'<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">해당하는 이의제기 항목이 없습니다</div>';
-      if(items.length) _loadDisputeData(items.map(i=>i.pNumber),month,prefix);
+      if(items.length) _loadDisputeData(items.map(i=>i.cardId),month,prefix);
       return;
     }
     const tabBar=document.getElementById(prefix+'-dispute-tab-bar'); if(tabBar) tabBar.style.display='none';
@@ -3816,7 +3801,8 @@ function _setupMonthTab(cfg) {
       const prodInner=product
         ?`<span class="june-prod-txt" onclick="${prefix}ShowProdEdit('${pnum}','${sp}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
         :window[prefix+'_prodSelectHTML'](pnum,'');
-      const isFlagged=_flaggedSet.has(pnum+'|'+month);
+      const isFlagged=rows.some(r=>_flaggedSet.has(r.id));
+      const cardIdsJsonStr=JSON.stringify(rows.map(r=>r.id));
       const parts=[...new Set(rows.map(r=>r.part).filter(Boolean))];
       const actions=rows.map(r=>r.inspection_action).filter(Boolean);
       const cntBadge=rows.length>1?`<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b;margin-left:4px;font-weight:600">${rows.length}건</span>`:'';
@@ -3839,7 +3825,7 @@ function _setupMonthTab(cfg) {
           <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
         </div>
         <div class="row-right">
-          <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag('${pnum}','${month}',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
+          <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag(${cardIdsJsonStr},'${month}',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
             <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
           </button>
           <div class="row-amount">${rowAmt.toLocaleString()}<span>원</span></div>
@@ -4002,12 +3988,14 @@ function _injectAnalysisFlags() {
     if (card.querySelector('.flag-btn') || card.querySelector('.unflag-btn')) return;
     const pnum = card.querySelector('.row-num')?.textContent?.trim();
     if (!pnum) return;
-    const isFlagged = _flaggedSet.has(pnum+'|26.05월');
+    const cards5 = _analysisCards.filter(c=>c.p_number===pnum);
+    const cardIds5 = cards5.map(c=>c.id);
+    const isFlagged = cardIds5.some(id=>_flaggedSet.has(id));
     const btn = document.createElement('button');
     btn.className = 'flag-btn' + (isFlagged ? ' flagged' : '');
     btn.title = isFlagged ? '이의제기 해제' : '이의제기 표시';
     btn.innerHTML = `<svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>`;
-    btn.onclick = () => toggleFlag(pnum, '26.05월', btn);
+    btn.onclick = () => toggleFlag(cardIds5, '26.05월', btn);
     const rowRight = card.querySelector('.row-right');
     if (rowRight) rowRight.prepend(btn);
     if (isFlagged) card.classList.add('flagged-card');
@@ -4015,10 +4003,10 @@ function _injectAnalysisFlags() {
 
   const sidebar = document.getElementById('analysis-sidebar');
   if (!sidebar) return;
-  const disputeKeys5 = [..._flaggedSet].filter(k=>k.endsWith('|26.05월'));
-  const disputeCount = disputeKeys5.length;
-  const passCount5 = disputeKeys5.filter(k=>_disputeResultMap.get(k)==='pass').length;
-  const failCount5 = disputeKeys5.filter(k=>_disputeResultMap.get(k)==='fail').length;
+  const disputeIds5 = [..._flaggedSet].filter(id=>_analysisCards.some(c=>c.id===id));
+  const disputeCount = new Set(disputeIds5.map(id=>_analysisCards.find(c=>c.id===id)?.p_number)).size;
+  const passCount5 = disputeIds5.filter(id=>_disputeResultMap.get(id)==='pass').length;
+  const failCount5 = disputeIds5.filter(id=>_disputeResultMap.get(id)==='fail').length;
   const subTxt5 = (passCount5||failCount5)
     ? `<div class="dispute-result-sub">${passCount5 ? `<span style="color:#16a34a">통과 ${passCount5}</span>` : ''}${passCount5&&failCount5?' · ':''}${failCount5 ? `<span style="color:#dc2626">기각 ${failCount5}</span>` : ''}</div>`
     : '';
@@ -4051,19 +4039,15 @@ function _injectAnalysisFlags() {
 
 function analysisFilterDispute() {
   _analysisDisputeFilter = true;
-  const flaggedPnums = new Set([..._flaggedSet].filter(k=>k.endsWith('|26.05월')).map(k=>k.split('|')[0]));
-  const byPnum = {};
-  _analysisCards.forEach(c => { if (flaggedPnums.has(c.p_number)) (byPnum[c.p_number]=byPnum[c.p_number]||[]).push(c); });
-  let items = Object.keys(byPnum).map(pnum => {
-    const rows = byPnum[pnum], rep = rows[0];
-    return {pNumber:pnum, type:rep.type, customer:rep.customer, visitTeam:rep.visit_team, product:rep.product, part:rep.part,
-      customerRequest:rep.customer_request, inspectionAction:rep.inspection_action,
-      amount:rows.reduce((s,c)=>s+(c.amount||0),0), bundleCount:rows.length};
-  });
+  let items = _analysisCards.filter(c=>_flaggedSet.has(c.id)).map(c=>({
+    cardId:c.id, pNumber:c.p_number, type:c.type, customer:c.customer,
+    visitTeam:c.visit_team, product:c.product, part:c.part,
+    customerRequest:c.customer_request, inspectionAction:c.inspection_action,
+    amount:c.amount||0, bundleCount:c.bundle_count||'1건'
+  }));
   if (_analysisDisputeResultFilter !== 'all') {
-    items = items.filter(it => _disputeResultMap.get(it.pNumber+'|26.05월') === _analysisDisputeResultFilter);
+    items = items.filter(it => _disputeResultMap.get(it.cardId) === _analysisDisputeResultFilter);
   }
-  // 탭바
   const tabBar = document.getElementById('analysis-dispute-tab-bar');
   if (tabBar) { tabBar.style.display = ''; tabBar.innerHTML = _disputeTabBarHTML('analysis', _analysisDisputeResultFilter); }
   document.getElementById('filterLabel').innerHTML = '<span class="filter-badge" style="background:#dc2626;color:#fff">이의제기 목록</span>';
@@ -4073,7 +4057,7 @@ function analysisFilterDispute() {
   document.getElementById('cardList').innerHTML = items.length
     ? items.map(it => renderDisputeCard(it,'26.05월','analysis')).join('')
     : '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">해당하는 이의제기 항목이 없습니다</div>';
-  if (items.length) _loadDisputeData(items.map(i=>i.pNumber),'26.05월','analysis');
+  if (items.length) _loadDisputeData(items.map(i=>i.cardId),'26.05월','analysis');
   document.getElementById('typeBreakdown').innerHTML = '';
 }
 
