@@ -2588,8 +2588,13 @@ async function toggleFlag(cardIds, month, btn) {
     await _sb.from('haja_flags').delete().in('card_id', ids);
     ids.forEach(id => { _flaggedSet.delete(id); _disputeResultMap.delete(id); _disputeRemovedAmtMap.delete(id); });
   } else {
-    await _sb.from('haja_flags').insert(ids.map(id => ({card_id: id, month})));
-    ids.forEach(id => _flaggedSet.add(id));
+    const allCards = [...(_julyCards||[]), ...(_juneCards||[]), ...(_analysisCards||[])];
+    Object.values(_monthPrefixMap||{}).forEach(p => { const a=window['_'+p+'Cards']; if(a) allCards.push(...a); });
+    const {error} = await _sb.from('haja_flags').insert(ids.map(id => {
+      const card = allCards.find(c=>c.id===id);
+      return {card_id: id, month, p_number: card?.p_number || null};
+    }));
+    if (!error) ids.forEach(id => _flaggedSet.add(id));
   }
   if (btn) btn.disabled = false;
   _rerenderMonthPanel(month);
