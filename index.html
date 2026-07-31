@@ -661,6 +661,8 @@ a{color:inherit;text-decoration:none}
 .dispute-note-input{width:100%;font-size:var(--fs-xs);font-family:var(--font-kr);border:1px dashed var(--border-default);border-radius:4px;padding:4px 8px;outline:none;background:var(--bg-subtle);color:var(--text-primary);letter-spacing:var(--tracking-kr)}
 .dispute-note-input:focus{border-color:var(--accent);border-style:solid;background:#fff}
 .dispute-note-status{font-size:10px;color:var(--text-tertiary);margin-top:2px;font-family:var(--font-display)}
+.dispute-save-btn{font-size:10px;padding:3px 10px;border-radius:5px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--font-kr);transition:all .15s}
+.dispute-save-btn:hover{opacity:0.85}
 /* ── ATTACHMENTS ── */
 .attach-wrap{margin-top:10px;border-top:1px dashed var(--border-subtle);padding-top:8px}
 .attach-add-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:6px;border:1px dashed var(--border-default);background:none;color:var(--text-secondary);cursor:pointer;font-family:var(--font-kr);transition:all .15s}
@@ -2615,7 +2617,10 @@ function renderDisputeCard(it, month, prefix) {
       <div class="dispute-note-wrap">
         <input class="dispute-note-input" id="note-input-${prefix}-${cid}" placeholder="이의제기 사유 메모 (선택)…"
           onblur="saveDisputeNote('${cid}','${month}',this)" onkeydown="if(event.key==='Enter')this.blur()">
-        <div class="dispute-note-status" id="dnote-${cid}"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+          <button class="dispute-save-btn" onclick="saveDisputeNoteReason('${cid}','${month}','${prefix}')">저장</button>
+          <div class="dispute-note-status" id="dnote-${cid}"></div>
+        </div>
       </div>
       <div class="attach-wrap">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -2720,15 +2725,45 @@ function _applyDisputeResultUI(cardId, prefix, result) {
   document.getElementById(`result-fail-${prefix}-${cardId}`)?.classList.toggle('active', result === 'fail');
 }
 
+async function saveDisputeNoteReason(cardId, month, prefix) {
+  if (!_sb) return;
+  const noteEl = document.getElementById(`note-input-${prefix}-${cardId}`);
+  const reasonEl = document.getElementById(`reason-input-${prefix}-${cardId}`);
+  const statusEl = document.getElementById(`dnote-${cardId}`);
+  if (statusEl) statusEl.textContent = '저장 중…';
+  const {error} = await _sb.from('haja_flags').update({
+    note: noteEl?.value||null,
+    dispute_reason: reasonEl?.value||null
+  }).eq('card_id', cardId);
+  if (statusEl) {
+    statusEl.textContent = error ? '오류' : '저장됨 ✓';
+    setTimeout(()=>{ statusEl.textContent=''; }, 1500);
+  }
+}
+
 async function saveDisputeResult(cardId, month, prefix, result) {
   const current = _disputeResultMap.get(cardId);
   const newResult = current === result ? null : result;
   if (newResult) _disputeResultMap.set(cardId, newResult);
   else _disputeResultMap.delete(cardId);
   _applyDisputeResultUI(cardId, prefix, newResult);
+  if (_sb) {
+    const noteEl = document.getElementById(`note-input-${prefix}-${cardId}`);
+    const reasonEl = document.getElementById(`reason-input-${prefix}-${cardId}`);
+    const allCards = [...(_julyCards||[]), ...(_juneCards||[]), ...(_analysisCards||[])];
+    Object.values(_monthPrefixMap||{}).forEach(p => { const a=window['_'+p+'Cards']; if(a) allCards.push(...a); });
+    const card = allCards.find(c=>c.id===cardId);
+    const removedAmt = newResult==='pass' ? (card?.amount||null) : null;
+    if (removedAmt) _disputeRemovedAmtMap.set(cardId, removedAmt);
+    else _disputeRemovedAmtMap.delete(cardId);
+    await _sb.from('haja_flags').update({
+      dispute_result: newResult,
+      dispute_removed_amount: removedAmt,
+      ...(noteEl ? {note: noteEl.value||null} : {}),
+      ...(reasonEl ? {dispute_reason: reasonEl.value||null} : {})
+    }).eq('card_id', cardId);
+  }
   _rerenderMonthPanel(month);
-  if (!_sb) return;
-  await _sb.from('haja_flags').update({dispute_result: newResult}).eq('card_id', cardId);
 }
 
 function _renderAttachGrid(cardId, month, prefix, urls) {
