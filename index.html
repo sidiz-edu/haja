@@ -3572,8 +3572,8 @@ function julyApplyFilter() {
     const typeTag = `<div id="${_wid7}" class="type-tag-wrap" data-card-ids="${encodeURIComponent(JSON.stringify([c.id]))}" data-month="26.07월" data-cur-type="${encodeURIComponent(c.type||'')}"><span class="tag type-tag-clickable" onclick="showTypeEdit('${_wid7}')" style="background:${col}" title="클릭하여 변경">${c.type||'미분류'} <span class="june-edit-hint">✎</span></span></div>`;
     const product = c.product||'';
     const prodInner = product
-      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${c.p_number}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
-      : _julyProdSelect(c.p_number, '');
+      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${c.id}','${c.p_number}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
+      : _julyProdSelect(c.id, c.p_number, '');
     const teamVal = (c.team&&c.team!=='미확인'&&c.team!=='품질') ? `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:${c.team==='옴니'?'#dbeafe':'#ede9fe'};color:${c.team==='옴니'?'#1d4ed8':'#6d28d9'};font-weight:600;margin-left:4px">${c.team}</span>` : '';
     const isFlagged7 = _flaggedSet.has(c.id);
     const cidJson = JSON.stringify([c.id]);
@@ -3601,28 +3601,29 @@ function julyApplyFilter() {
   }).join('') || '<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
 }
 
-function _julyProdSelect(id, cur) {
-  return `<select class="june-prod-select" onchange="julySetProduct('${id}',this.value)" onblur="julyBlurProd('${id}','${cur}')">
+function _julyProdSelect(cardId, pnum, cur) {
+  const sp = (cur||'').replace(/'/g,"\\'");
+  return `<select class="june-prod-select" onchange="julySetProduct('${pnum}',this.value)" onblur="julyBlurProd('${cardId}','${pnum}','${sp}')">
     <option value="">제품 선택…</option>
     ${_JUNE_PROD_LIST.map(p=>`<option value="${p}"${p===cur?' selected':''}>${p}</option>`).join('')}
   </select>`;
 }
 
-function julyShowProdEdit(pnum, cur) {
-  const wrap = document.getElementById(`july-prod-wrap-${pnum}`);
+function julyShowProdEdit(cardId, pnum, cur) {
+  const wrap = document.getElementById(`july-prod-wrap-${cardId}`);
   if (!wrap) return;
-  wrap.innerHTML = _julyProdSelect(pnum, cur);
+  wrap.innerHTML = _julyProdSelect(cardId, pnum, cur);
   wrap.querySelector('select').focus();
 }
 
-function julyBlurProd(pnum, cur) {
-  const wrap = document.getElementById(`july-prod-wrap-${pnum}`);
+function julyBlurProd(cardId, pnum, cur) {
+  const wrap = document.getElementById(`july-prod-wrap-${cardId}`);
   if (!wrap) return;
   const sel = wrap.querySelector('select');
   if (sel && !sel.value) {
     wrap.innerHTML = cur
-      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${pnum}','${cur.replace(/'/g,"\\'")}')" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
-      : _julyProdSelect(pnum, '');
+      ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${cardId}','${pnum}','${cur.replace(/'/g,"\\'")}')" title="클릭하여 변경">${cur} <span class="june-edit-hint">✎</span></span>`
+      : _julyProdSelect(cardId, pnum, '');
   }
 }
 
