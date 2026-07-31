@@ -468,6 +468,24 @@ a{color:inherit;text-decoration:none}
   padding:3px 9px;border-radius:var(--radius-pill);
   letter-spacing:0.02em;font-family:var(--font-kr);
 }
+.tag.type-tag-clickable{cursor:pointer;transition:opacity .15s}
+.tag.type-tag-clickable:hover{opacity:.8}
+.type-picker{
+  position:fixed;z-index:9999;background:var(--surface);
+  border:1px solid var(--border-default);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);padding:4px;
+  display:flex;flex-direction:column;gap:1px;min-width:210px;
+  max-height:320px;overflow-y:auto;
+}
+.type-picker-item{
+  display:flex;align-items:center;gap:8px;padding:6px 10px;
+  border-radius:6px;cursor:pointer;border:none;background:none;
+  width:100%;text-align:left;font-family:var(--font-kr);font-size:12px;
+  color:var(--text-primary);
+}
+.type-picker-item:hover{background:var(--bg-subtle)}
+.type-picker-item.cur{background:var(--accent-soft);font-weight:600}
+.type-picker-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .row-center{flex:1;min-width:0}
 .row-detail{
   font-size:var(--fs-xs);color:var(--text-primary);
@@ -2347,6 +2365,60 @@ function maskName(n) {
 }
 
 const TYPE_COLORS ={"A. 냄새 / 유해성": "#6E5FC6", "B. 파손 / 찍힘": "#C65878", "C. 조립·시공 불량": "#C68A3D", "D. 외관 / 오염 / 표면": "#2E9B8A", "E. 수평 / 기울어짐": "#8A93A1", "F. 중심봉 (가스압, 높낮이, 흔들림, 기름)": "#3D6FE0", "G. 유격 / 흔들림 / 소음": "#2E86C6", "H. 착좌감 / 쿠션 / 강도": "#4FA567", "I. 사양변경 / 오구매": "#ABAEB1", "J. 틸팅 / 기능 불만": "#003EFF", "K. 기타 / 강성 교체요구": "#56585A"};
+const _TYPE_LIST = Object.entries(TYPE_COLORS).map(([name,color])=>({name,color}));
+
+function showTypePicker(cardIds, curType, month, tagEl) {
+  document.getElementById('__type-picker')?.remove();
+  const picker = document.createElement('div');
+  picker.className = 'type-picker';
+  picker.id = '__type-picker';
+  _TYPE_LIST.forEach(({name, color}) => {
+    const btn = document.createElement('button');
+    btn.className = 'type-picker-item' + (name === curType ? ' cur' : '');
+    const dot = document.createElement('span');
+    dot.className = 'type-picker-dot';
+    dot.style.background = color;
+    btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(name));
+    btn.onclick = () => { saveCardType(cardIds, name, color, month, tagEl); picker.remove(); };
+    picker.appendChild(btn);
+  });
+  document.body.appendChild(picker);
+  const rect = tagEl.getBoundingClientRect();
+  let top = rect.bottom + 4, left = rect.left;
+  picker.style.visibility = 'hidden';
+  requestAnimationFrame(() => {
+    const ph = picker.offsetHeight, pw = picker.offsetWidth;
+    if (top + ph > window.innerHeight - 8) top = rect.top - ph - 4;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    if (left < 8) left = 8;
+    picker.style.top = top + 'px';
+    picker.style.left = left + 'px';
+    picker.style.visibility = '';
+  });
+  const close = e => { if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', close, true); } };
+  setTimeout(() => document.addEventListener('click', close, true), 0);
+}
+
+async function saveCardType(cardIds, newType, color, month, tagEl) {
+  if (!_sb || !cardIds?.length) return;
+  const ids = Array.isArray(cardIds) ? cardIds : [cardIds];
+  const {error} = await _sb.from('haja_as_cards').update({type: newType}).in('id', ids);
+  if (error) { console.error('type update failed', error); return; }
+  [_julyCards, _juneCards, _analysisCards].forEach(arr => {
+    if (!arr) return;
+    ids.forEach(id => { const c = arr.find(x=>x.id===id); if(c) c.type = newType; });
+  });
+  Object.values(_monthPrefixMap||{}).forEach(p => {
+    const arr = window['_'+p+'Cards'];
+    if (!arr) return;
+    ids.forEach(id => { const c = arr.find(x=>x.id===id); if(c) c.type = newType; });
+  });
+  if (tagEl) { tagEl.style.background = color; tagEl.textContent = newType; }
+  if (month==='26.07월' && _julyLoaded) renderJulyPanel();
+  else if (month==='26.06월' && typeof renderJunePanel==='function' && _juneLoaded) renderJunePanel();
+  else { const p=_monthPrefixMap?.[month]; if(p){const C=p[0].toUpperCase()+p.slice(1); window['render'+C+'Panel']?.();} }
+}
 
 function renderBreakdown() {
   const bd = document.getElementById('typeBreakdown');
@@ -3146,9 +3218,9 @@ function juneApplyFilter() {
     const rep = rows[0];
     const gtypes = [...new Set(rows.map(r=>r.type).filter(Boolean))];
     const col = TYPE_COLORS[gtypes[0]] || '#ABAEB1';
-    const typeTag = gtypes.length > 1
-      ? `<span class="tag" style="background:${col}">${gtypes[0]} <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span></span>`
-      : `<span class="tag" style="background:${col}">${gtypes[0]||''}</span>`;
+    const _ctJ = (gtypes[0]||'').replace(/'/g,"\\'");
+    const _ridsJ = JSON.stringify(rows.map(r=>r.id));
+    const typeTag = `<span class="tag type-tag-clickable" style="background:${col}" onclick="showTypePicker(${_ridsJ},'${_ctJ}','26.06월',this)" title="유형 변경">${gtypes[0]||'미분류'}${gtypes.length>1?` <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span>`:''}</span>`;
     const totalAmt = rows.reduce((s,r)=>s+(r.amount||0),0);
     const product = rows.find(r=>r.product)?.product||'';
     const prodInner = product
@@ -3502,7 +3574,8 @@ function julyApplyFilter() {
   document.getElementById('july-count-label').textContent = `${filtered7.length}건`;
   document.getElementById('july-card-list').innerHTML = filtered7.map(c => {
     const col = TYPE_COLORS[c.type] || '#ABAEB1';
-    const typeTag = `<span class="tag" style="background:${col}">${c.type||''}</span>`;
+    const _ct7 = (c.type||'').replace(/'/g,"\\'");
+    const typeTag = `<span class="tag type-tag-clickable" style="background:${col}" onclick="showTypePicker(${JSON.stringify([c.id])},'${_ct7}','26.07월',this)" title="유형 변경">${c.type||'미분류'}</span>`;
     const product = c.product||'';
     const prodInner = product
       ? `<span class="june-prod-txt" onclick="julyShowProdEdit('${c.p_number}','${product.replace(/'/g,"\\'")}')" title="클릭하여 변경">${product} <span class="june-edit-hint">✎</span></span>`
@@ -3774,9 +3847,9 @@ function _setupMonthTab(cfg) {
       const rows=grpMap[pnum],rep=rows[0];
       const gtypes=[...new Set(rows.map(r=>r.type).filter(Boolean))];
       const col=TYPE_COLORS[gtypes[0]]||'#ABAEB1';
-      const typeTag=gtypes.length>1
-        ?`<span class="tag" style="background:${col}">${gtypes[0]} <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span></span>`
-        :`<span class="tag" style="background:${col}">${gtypes[0]||''}</span>`;
+      const _ctM=(gtypes[0]||'').replace(/'/g,"\\'");
+      const _ridsM=JSON.stringify(rows.map(r=>r.id));
+      const typeTag=`<span class="tag type-tag-clickable" style="background:${col}" onclick="showTypePicker(${_ridsM},'${_ctM}','${month}',this)" title="유형 변경">${gtypes[0]||'미분류'}${gtypes.length>1?` <span style="font-size:9px;opacity:0.75">+${gtypes.length-1}</span>`:''}</span>`;
       const rowAmt=rows.reduce((s,r)=>s+(r.amount||0),0);
       const product=rows.find(r=>r.product)?.product||'';
       const sp=product.replace(/'/g,"\\'");
