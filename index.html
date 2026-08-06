@@ -630,6 +630,10 @@ a{color:inherit;text-decoration:none}
 .flag-btn{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border-subtle);background:none;cursor:pointer;transition:all .15s;color:var(--text-tertiary);margin-left:auto;margin-bottom:8px;flex-shrink:0}
 .flag-btn:hover{border-color:#d97706;color:#d97706;background:#fffbf0}
 .flag-btn.flagged{border-color:#dc2626;color:#dc2626;background:#fff5f5}
+.row-actions{display:flex;gap:6px;margin-left:auto;margin-bottom:8px}
+.row-actions .flag-btn{margin-left:0;margin-bottom:0}
+.del-btn{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border-subtle);background:none;cursor:pointer;transition:all .15s;color:var(--text-tertiary);flex-shrink:0}
+.del-btn:hover{border-color:#dc2626;color:#dc2626;background:#fff5f5}
 .row-card.flagged-card{border-left:3px solid #f87171;background:#fffafa}
 .dispute-sec{margin-bottom:var(--space-4);border:1px solid #fecaca;border-radius:var(--radius-lg);overflow:hidden;background:#fff8f8}
 .dispute-sec-header{display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-4);border-bottom:1px solid #fecaca;background:#fff0f0}
@@ -2600,6 +2604,24 @@ async function toggleFlag(cardIds, month, btn) {
   _rerenderMonthPanel(month);
 }
 
+async function deleteAsCard(cardIdsJson, month) {
+  if (!_sb) return;
+  const ids = JSON.parse(decodeURIComponent(cardIdsJson));
+  if (!confirm(`이 접수 건을 삭제하시겠습니까? (${ids.length}건, 되돌릴 수 없습니다)`)) return;
+  const {error} = await _sb.from('haja_as_cards').delete().in('id', ids);
+  if (error) { alert('삭제 실패: ' + error.message); return; }
+  await _sb.from('haja_flags').delete().in('card_id', ids);
+  ids.forEach(id => { _flaggedSet.delete(id); _disputeResultMap.delete(id); _disputeRemovedAmtMap.delete(id); });
+  _juneCards = _juneCards.filter(c => !ids.includes(c.id));
+  _julyCards = _julyCards.filter(c => !ids.includes(c.id));
+  _analysisCards = _analysisCards.filter(c => !ids.includes(c.id));
+  Object.values(_monthPrefixMap||{}).forEach(p => {
+    const key = '_'+p+'Cards';
+    if (window[key]) window[key] = window[key].filter(c => !ids.includes(c.id));
+  });
+  _rerenderMonthPanel(month);
+}
+
 function _rerenderMonthPanel(month) {
   if (month === '26.06월' && _juneLoaded) renderJunePanel();
   else if (month === '26.05월' && _analysisLoaded) { _injectAnalysisFlags(); if (_analysisDisputeFilter) analysisFilterDispute(); }
@@ -3239,9 +3261,14 @@ function juneApplyFilter() {
         <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
       </div>
       <div class="row-right">
-        <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag(${cardIdsJson},'26.06월',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
-          <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
-        </button>
+        <div class="row-actions">
+          <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag(${cardIdsJson},'26.06월',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
+            <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
+          </button>
+          <button class="del-btn" onclick="deleteAsCard('${encodeURIComponent(cardIdsJson)}','26.06월')" title="삭제">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5.5 4V2.5A1 1 0 0 1 6.5 1.5h3A1 1 0 0 1 10.5 2.5V4M6 4v9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V4"/></svg>
+          </button>
+        </div>
         <div class="row-amount">${totalAmt.toLocaleString()}<span>원</span></div>
       </div>
     </div>`;
@@ -3604,9 +3631,14 @@ function julyApplyFilter() {
         <div class="row-req"><strong>고객 요구:</strong> ${c.customer_request||''}</div>
       </div>
       <div class="row-right">
-        <button class="flag-btn${isFlagged7?' flagged':''}" onclick="toggleFlag('${c.id}','26.07월',this)" title="${isFlagged7?'이의제기 해제':'이의제기 표시'}">
-          <svg viewBox="0 0 16 16" fill="${isFlagged7?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
-        </button>
+        <div class="row-actions">
+          <button class="flag-btn${isFlagged7?' flagged':''}" onclick="toggleFlag('${c.id}','26.07월',this)" title="${isFlagged7?'이의제기 해제':'이의제기 표시'}">
+            <svg viewBox="0 0 16 16" fill="${isFlagged7?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
+          </button>
+          <button class="del-btn" onclick="deleteAsCard('${encodeURIComponent(JSON.stringify([c.id]))}','26.07월')" title="삭제">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5.5 4V2.5A1 1 0 0 1 6.5 1.5h3A1 1 0 0 1 10.5 2.5V4M6 4v9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V4"/></svg>
+          </button>
+        </div>
         <div class="row-amount">${(c.amount||0).toLocaleString()}<span>원</span></div>
       </div>
     </div>`;
