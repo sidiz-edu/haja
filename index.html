@@ -772,6 +772,10 @@ a{color:inherit;text-decoration:none}
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="2"/><path d="M1 5h14M5 5v10"/></svg>
           옴니채널성장팀만 (전체 월)
         </button>
+        <button class="dl-menu-item" onclick="downloadExcel('omni-current')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M6 2v12"/></svg>
+          옴니채널성장팀 (현재 월)
+        </button>
       </div>
     </div>
   </div>
@@ -4298,14 +4302,15 @@ async function downloadExcel(scope) {
     const month = _getCurrentMonth();
     if (!month) { alert('26.05월 또는 26.06월 탭에서 실행해주세요.'); return; }
     const {data} = await _sb.from('haja_as_cards').select('*').eq('month', month).order('type');
-    const rows = data || [];
+    let rows = data || [];
+    if (scope === 'omni-current') rows = rows.filter(r => !r.team || r.team === '옴니');
     XLSX.utils.book_append_sheet(wb, makeSheet(rows), month);
     _appendSummarySheets(wb, rows, month);
 
     const wsDispute = await makeDisputeSheet(rows, [month]);
     if (wsDispute) XLSX.utils.book_append_sheet(wb, wsDispute, '이의제기');
 
-    XLSX.writeFile(wb, `하자보수비_${month}.xlsx`);
+    XLSX.writeFile(wb, scope === 'omni-current' ? `하자보수비_${month}_옴니채널성장팀.xlsx` : `하자보수비_${month}.xlsx`);
   }
 }
 
