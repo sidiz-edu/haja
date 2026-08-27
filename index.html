@@ -3753,6 +3753,7 @@ function _setupMonthTab(cfg) {
     base.forEach(c => { (grps[c.p_number]=grps[c.p_number]||[]).push(c); });
     const total = Object.keys(grps).length;
     const totalAmt = base.reduce((s,c)=>s+(c.amount||0),0);
+    const totalClaims = base.reduce((s,c)=>s+(parseInt(c.bundle_count)||1),0);
     const types = [...new Set(base.map(c=>c.type))].filter(Boolean);
     const maxCount = Math.max(...types.map(t=>Object.values(grps).filter(rows=>rows.some(r=>r.type===t)).length),1);
 
@@ -3764,7 +3765,8 @@ function _setupMonthTab(cfg) {
 
     const kpiEl = document.getElementById(prefix+'-kpis');
     if (kpiEl) kpiEl.innerHTML = `
-      <div class="kpi kpi-accent"><div class="v">${total}</div><div class="l">총 접수건</div></div>
+      <div class="kpi kpi-accent"><div class="v">${totalClaims}</div><div class="l">총 청구 건</div></div>
+      <div class="kpi kpi-accent"><div class="v">${total}</div><div class="l">접수 건</div></div>
       <div class="kpi"><div class="v">${totalAmt.toLocaleString()}</div><div class="l">총 금액 (원)</div></div>
       <div class="kpi"><div class="v">${types.length}</div><div class="l">불만 유형</div></div>
       <div class="kpi"><div class="v">${total?Math.round(totalAmt/total).toLocaleString():0}</div><div class="l">건당 평균 (원)</div></div>
