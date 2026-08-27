@@ -3742,6 +3742,7 @@ function _setupMonthTab(cfg) {
     await _ensureFlags();
     const {data} = await _sb.from('haja_as_cards').select('*').eq('month',month).order('type');
     _cards = data || [];
+    window['_'+prefix+'Cards'] = _cards;
     if (onDataLoaded) await onDataLoaded(_cards, _sb);
     _loaded = true;
     window['render'+Cap+'Panel']();
