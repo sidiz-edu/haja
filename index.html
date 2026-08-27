@@ -3961,13 +3961,19 @@ function _setupMonthTab(cfg) {
           <div class="row-req"><strong>고객 요구:</strong> ${rep.customer_request||''}</div>
         </div>
         <div class="row-right">
-          <button class="flag-btn${isFlagged?' flagged':''}" onclick="toggleFlag(${cardIdsJsonStr},'${month}',this)" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
+          <button class="flag-btn${isFlagged?' flagged':''}" data-flag-ids="${encodeURIComponent(cardIdsJsonStr)}" title="${isFlagged?'이의제기 해제':'이의제기 표시'}">
             <svg viewBox="0 0 16 16" fill="${isFlagged?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3 2v12"/><path d="M3 2l9 4-9 4"/></svg>
           </button>
           <div class="row-amount">${rowAmt.toLocaleString()}<span>원</span></div>
         </div>
       </div>`;
     }).join('')||'<div style="padding:24px;color:var(--text-tertiary);text-align:center;font-family:var(--font-kr)">데이터가 없습니다</div>';
+    cardList.querySelectorAll('.flag-btn[data-flag-ids]').forEach(btn=>{
+      btn.addEventListener('click',function(){
+        const ids=JSON.parse(decodeURIComponent(this.dataset.flagIds));
+        toggleFlag(ids,month,this);
+      });
+    });
   };
 
   if (teams) {
