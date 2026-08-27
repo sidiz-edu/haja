@@ -3785,18 +3785,18 @@ function _setupMonthTab(cfg) {
     let sb='';
     if (dCnt>0||_disputeFilter) {
       const sub=(pCnt||fCnt)?`<div class="dispute-result-sub">${pCnt?`<span style="color:#16a34a">통과 ${pCnt}</span>`:''}${pCnt&&fCnt?' · ':''}${fCnt?`<span style="color:#dc2626">기각 ${fCnt}</span>`:''}</div>`:'';
-      sb+=`<div class="type-card dispute-filter-item${_disputeFilter?' active':''}" onclick="${prefix}FilterDispute()" data-dispute="${prefix}" style="margin-bottom:10px">
+      sb+=`<div class="type-card dispute-filter-item${_disputeFilter?' active':''}" data-action="dispute" style="margin-bottom:10px">
         <div class="type-dot" style="background:#dc2626"></div>
         <div class="type-info"><div class="type-name" style="color:#dc2626">이의제기 목록</div>
         <div class="type-meta"><span class="badge" style="background:#dc2626">${dCnt}건</span></div>${sub}</div></div>`;
     }
-    sb+=`<h2>불만 유형 필터</h2><button class="reset-btn" onclick="${prefix}ResetAll()">전체 보기</button>`;
+    sb+=`<h2>불만 유형 필터</h2><button class="reset-btn" data-action="reset">전체 보기</button>`;
     types.forEach(t=>{
       const col=TYPE_COLORS[t]||'#ABAEB1';
       const cnt=Object.values(grps).filter(rows=>rows.some(r=>r.type===t)).length;
       const amt=base.filter(c=>c.type===t).reduce((s,c)=>s+(c.amount||0),0);
       const pct=total?(cnt/total*100).toFixed(1):0;
-      sb+=`<div class="type-card" onclick="${prefix}FilterType('${t.replace(/'/g,"\\'")}')\" style="--accent:${col}" data-type="${t}">
+      sb+=`<div class="type-card" data-action="type" style="--accent:${col}" data-type="${t}">
         <div class="type-dot" style="background:${col}"></div>
         <div class="type-info"><div class="type-name">${t}</div>
         <div class="type-bar-wrap"><div class="type-bar" style="width:${Math.round(cnt/maxCount*100)}%;background:${col}"></div></div>
@@ -3808,9 +3808,15 @@ function _setupMonthTab(cfg) {
     const sProds=Object.entries(prods).sort((a,b)=>b[1]-a[1]);
     const maxProd=sProds[0]?.[1]||1, totProd=sProds.reduce((s,[,c])=>s+c,0)||1;
     sb+='<div class="section-title">제품별 접수 건수</div>';
-    sProds.forEach(([p,cnt])=>{sb+=`<div class="prod-row" data-prod="${p}" onclick="${prefix}FilterProd('${p.replace(/'/g,"\\'")}')"><span class="prod-name">${p}</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:${Math.round(cnt/maxProd*100)}%"></div></div><span class="prod-cnt">${cnt}건<span class="prod-pct">${(cnt/totProd*100).toFixed(1)}%</span></span></div>`;});
+    sProds.forEach(([p,cnt])=>{sb+=`<div class="prod-row" data-prod="${p}" data-action="prod"><span class="prod-name">${p}</span><div class="prod-bar-wrap"><div class="prod-bar" style="width:${Math.round(cnt/maxProd*100)}%"></div></div><span class="prod-cnt">${cnt}건<span class="prod-pct">${(cnt/totProd*100).toFixed(1)}%</span></span></div>`;});
     const sEl=document.getElementById(prefix+'-sidebar');
-    if (sEl) sEl.innerHTML=sb;
+    if (sEl) {
+      sEl.innerHTML=sb;
+      sEl.querySelectorAll('[data-action="type"]').forEach(el=>el.addEventListener('click',()=>window[prefix+'FilterType'](el.dataset.type)));
+      sEl.querySelectorAll('[data-action="prod"]').forEach(el=>el.addEventListener('click',()=>window[prefix+'FilterProd'](el.dataset.prod)));
+      sEl.querySelector('[data-action="reset"]')?.addEventListener('click',()=>window[prefix+'ResetAll']());
+      sEl.querySelector('[data-action="dispute"]')?.addEventListener('click',()=>window[prefix+'FilterDispute']());
+    }
     _renderSummaryTables(_cards,prefix+'-summary');
     window[prefix+'ApplyFilter']();
   };
