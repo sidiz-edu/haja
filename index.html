@@ -2754,17 +2754,21 @@ function _disputeTabBarHTML(prefix, current) {
   </div>`;
 }
 
-function downloadDisputeCSV() {
+async function downloadDisputeCSV() {
   const items = _currentDisputeItems;
   const prefix = _currentDisputePrefix;
-  if (!items.length) return;
-  const header = ['접수번호','고객명','불만유형','제품','부품명','서비스팀','금액','이의제기결과','이의제기사유'];
+  if (!items.length || !_sb) return;
+  const ids = items.map(it => it.cardId);
+  const {data: flags} = await _sb.from('haja_flags').select('card_id,note,dispute_result,dispute_reason').in('card_id', ids);
+  const flagMap = new Map((flags||[]).map(f => [f.card_id, f]));
+
+  const header = ['접수번호','고객명','불만유형','제품','부품명','서비스팀','금액','이의제기결과','이의제기 사유 메모','결정 이유'];
   const rows = items.map(it => {
-    const r = _disputeResultMap.get(it.cardId);
-    const resultLabel = r==='pass'?'통과':r==='fail'?'기각':'검토중';
-    const reasonEl = document.getElementById(`reason-input-${prefix}-${it.cardId}`);
-    const reason = (reasonEl?.value||'').replace(/\n/g,' ');
-    return [it.pNumber, it.customer||'', it.type||'', it.product||'', it.part||'', it.visitTeam||'', it.amount, resultLabel, reason];
+    const f = flagMap.get(it.cardId) || {};
+    const resultLabel = f.dispute_result==='pass'?'통과':f.dispute_result==='fail'?'기각':'검토중';
+    const note = (f.note||'').replace(/\n/g,' ');
+    const reason = (f.dispute_reason||'').replace(/\n/g,' ');
+    return [it.pNumber, it.customer||'', it.type||'', it.product||'', it.part||'', it.visitTeam||'', it.amount, resultLabel, note, reason];
   });
   const csv = [header,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
