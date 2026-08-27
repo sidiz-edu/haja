@@ -627,6 +627,15 @@ a{color:inherit;text-decoration:none}
 .qi-modal-btn.primary:hover{opacity:.85}
 
 /* ── FLAG / DISPUTE ── */
+.prompt-toggle{margin-top:8px;font-family:var(--font-kr)}
+.prompt-toggle summary{cursor:pointer;font-size:11px;color:var(--blue);user-select:none;list-style:none}
+.prompt-toggle summary::-webkit-details-marker{display:none}
+.prompt-toggle summary:before{content:'▸ ';font-size:9px}
+.prompt-toggle[open] summary:before{content:'▾ '}
+.prompt-toggle summary:hover{text-decoration:underline}
+.prompt-box{margin-top:8px;background:var(--bg-subtle);border-radius:8px;padding:var(--space-3);font-size:11px;line-height:1.7;color:var(--text-secondary);white-space:pre-wrap;letter-spacing:var(--tracking-kr);max-width:640px}
+.prompt-copy-btn{margin-top:6px;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border-default);background:var(--surface);color:var(--text-secondary);cursor:pointer;font-family:var(--font-kr)}
+.prompt-copy-btn:hover{background:var(--bg-subtle)}
 .flag-btn{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border-subtle);background:none;cursor:pointer;transition:all .15s;color:var(--text-tertiary);margin-left:auto;margin-bottom:8px;flex-shrink:0}
 .flag-btn:hover{border-color:#d97706;color:#d97706;background:#fffbf0}
 .flag-btn.flagged{border-color:#dc2626;color:#dc2626;background:#fff5f5}
@@ -750,6 +759,44 @@ a{color:inherit;text-decoration:none}
         품질관리팀 조치내역 확인 방법 : ERP korea 접속 → 판정 결과등록 → 고객명 검색 → 세부 결과 등록 → [파일유무] 열 확인<br>
         작업 방법 : 엑셀 파일 클로드에 넣기 → 접수번호 기준으로 묶기 → 제품 선택할 수 있게 하기
       </p>
+      <details class="prompt-toggle">
+        <summary>월별 파일 첨부용 프롬프트 (클릭해서 펼치기)</summary>
+        <pre class="prompt-box" id="monthly-prompt-text">첨부한 엑셀은 [26.0X월] 하자보수비 접수 원본이야. 아래 규칙대로 정리해서
+haja_as_cards 테이블에 넣을 수 있는 형태(컬럼 헤더 포함 CSV)로 만들어줘.
+
+[출력 컬럼]
+month, type, p_number, product, customer, part, customer_request,
+inspection_action, amount, bundle_count, visit_team, team
+
+[분류/그룹핑 규칙]
+1. p_number(접수번호) 기준으로 같은 건은 하나로 묶어서 bundle_count에 "N건"으로 표기,
+   amount는 해당 접수번호 전체 합계 금액.
+2. type은 아래 11개 분류 중 하나로 판단해서 넣기:
+   A. 냄새 / 유해성   B. 파손 / 찍힘   C. 조립·시공 불량   D. 외관 / 오염 / 표면
+   E. 수평 / 기울어짐   F. 중심봉 (가스압, 높낮이, 흔들림, 기름)   G. 유격 / 흔들림 / 소음
+   H. 착좌감 / 쿠션 / 강도   I. 사양변경 / 오구매   J. 틸팅 / 기능 불만   K. 기타 / 강성 교체요구
+3. product는 모델코드/부품명에서 유추되면 채우고, 애매하면 비워둬 (대시보드에서 수동 선택).
+4. team은 원본에 채널 구분 컬럼이 있으면 옴니/외부/품질로 매핑, 없으면 "미확인".
+5. month는 "26.0X월" 고정.
+6. 접수번호가 없거나 알아볼 수 없는 행은 임의로 만들지 말고 별도로 목록만 알려줘.
+
+[customer_request 정리 규칙]
+원문 내용은 절대 삭제/왜곡하지 말고, 아래 양식으로만 구조를 정리해줘:
+  [접수일] MM/DD (0 채워서 두 자리로, 예: 07/03)
+  [특이사항] (있을 때만 — ★ 표시된 우선순위/조건)
+  [제품정보] L/N YYYY-MM-DD | 모델코드 | 사양명 | 수량   ← 구분자는 반드시 "|"로 통일 (원문 탭/스페이스 제거)
+  [증상] 고객이 말한 증상
+  [1차 조치] 안내 내용
+  [고객 반응] (있을 때만)
+재방문 이력이 있는 건(01-,02-... 형태)은 아래처럼 시간순으로 바꿔줘:
+  [1차 방문] MM/DD  [내용] ...
+  [2차 방문] MM/DD  [내용] ...
+inspection_action(점검 및 조치)은 이미 "부위/분류/내용/날짜" 형식이니 그대로 유지.
+
+[검산]
+다 만든 후 총 건수·총 금액이 원본 합계와 일치하는지 검산해서 알려줘.</pre>
+        <button class="prompt-copy-btn" onclick="copyMonthlyPrompt(this)">📋 복사</button>
+      </details>
     </div>
     <div id="db-status"><span class="dot"></span><span id="db-status-txt">DB 연결 중…</span></div>
     <div class="dl-wrap" id="dl-wrap">
@@ -4210,6 +4257,15 @@ function analysisFilterDispute() {
 }
 
 /* ── EXCEL DOWNLOAD ── */
+function copyMonthlyPrompt(btn) {
+  const text = document.getElementById('monthly-prompt-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '복사됨 ✓';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
 function toggleDlMenu(e) {
   e.stopPropagation();
   document.getElementById('dl-menu').classList.toggle('open');
