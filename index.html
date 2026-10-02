@@ -534,7 +534,7 @@ a{color:inherit;text-decoration:none}
 .tab-btn:hover:not(.active){color:var(--text-secondary)}
 .panel{display:none}
 .panel.active{display:block}
-#panel-analysis.active,#panel-june.active,#panel-july.active,#panel-aug.active{display:flex;flex-direction:column}
+#panel-analysis.active,#panel-june.active,#panel-july.active,#panel-aug.active,#panel-sep.active{display:flex;flex-direction:column}
 .july-team-bar{display:flex;gap:8px;padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);background:var(--bg-subtle)}
 .july-team-btn{padding:5px 16px;border-radius:20px;border:1px solid var(--border-default);background:var(--bg-default);color:var(--text-secondary);cursor:pointer;font-family:var(--font-kr);font-size:var(--fs-xs);font-weight:500;transition:all .15s}
 .july-team-btn:hover:not(.active){background:var(--gray-100)}
@@ -829,7 +829,8 @@ inspection_action(점검 및 조치)은 이미 "부위/분류/내용/날짜" 형
 </div>
 <!-- TAB BAR -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('aug')">26.08월</button>
+  <button class="tab-btn active" onclick="switchTab('sep')">26.09월</button>
+  <button class="tab-btn" onclick="switchTab('aug')">26.08월</button>
   <button class="tab-btn" onclick="switchTab('july')">26.07월</button>
   <button class="tab-btn" onclick="switchTab('june')">26.06월</button>
   <button class="tab-btn" onclick="switchTab('analysis')">26.05월</button>
@@ -2157,7 +2158,30 @@ inspection_action(점검 및 조치)은 이미 "부위/분류/내용/날짜" 형
 </div>
 </div><!-- /panel-june -->
 
-<div id="panel-aug" class="panel active">
+<div id="panel-sep" class="panel active">
+<div class="sub" style="padding:var(--space-3) var(--space-5) 0;font-size:var(--fs-xs);color:var(--text-tertiary);letter-spacing:var(--tracking-wide)">26년 9월 &middot; 옴니채널성장팀 &middot; 시디즈 &middot; 접수번호 기준</div>
+<div id="sep-kpis" class="kpis" style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)">
+  <div class="kpi kpi-accent"><div class="v" style="font-size:1.4rem">…</div><div class="l">로딩 중</div></div>
+</div>
+<div id="sep-summary"></div>
+<div class="main">
+  <div class="sidebar" id="sep-sidebar"></div>
+  <div class="content">
+    <div class="content-header">
+      <h2>접수 상세 내역</h2>
+      <span id="sep-filter-label"></span>
+      <span class="count-badge" id="sep-count-label"></span>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="sep-search" placeholder="고객명, 제품, 접수번호, 내용으로 검색..." oninput="sepApplyFilter()">
+    </div>
+    <div id="sep-dispute-tab-bar" style="display:none"></div>
+    <div id="sep-card-list"></div>
+  </div>
+</div>
+</div><!-- /panel-sep -->
+
+<div id="panel-aug" class="panel">
 <div class="sub" style="padding:var(--space-3) var(--space-5) 0;font-size:var(--fs-xs);color:var(--text-tertiary);letter-spacing:var(--tracking-wide)">26년 8월 &middot; 옴니채널성장팀 &middot; 시디즈 &middot; 접수번호 기준</div>
 <div id="aug-kpis" class="kpis" style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)">
   <div class="kpi kpi-accent"><div class="v" style="font-size:1.4rem">…</div><div class="l">로딩 중</div></div>
@@ -2508,7 +2532,7 @@ window.addEventListener('load', () => {
     el.textContent = maskName(el.textContent);
   });
   _checkDbStatus();
-  loadAugData();
+  loadSepData();
 });
 
 /* ===== MEMO SYSTEM ===== */
@@ -4037,6 +4061,7 @@ function _setupMonthTab(cfg) {
 }
 
 _setupMonthTab({month:'26.08월', prefix:'aug'});
+_setupMonthTab({month:'26.09월', prefix:'sep'});
 
 /* ── COMPARE TAB ── */
 let _compareLoaded = false;
