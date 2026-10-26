@@ -2905,7 +2905,7 @@ function _renderAttachGrid(cardId, month, prefix, urls) {
   grid.innerHTML = (urls||[]).map((url, i) => {
     const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
     const thumb = isVideo
-      ? `<video src="${url}" preload="metadata"></video>
+      ? `<video src="${url}" preload="none"></video>
          <div class="attach-thumb-play" onclick="openMediaModal('${url}',true)">
            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="14" fill="rgba(255,255,255,0.9)"/><polygon points="11,9 21,14 11,19" fill="#111"/></svg>
          </div>`
@@ -3056,7 +3056,7 @@ async function handleAttachment(cardId, month, prefix, input) {
     const ext = isVideo ? 'mp4' : 'jpg';
     const safeMonth = month.replace(/[^\w.-]/g, '');
     const path = `dispute/${safeMonth}/${cardId}/${Date.now()}.${ext}`;
-    const {error: upErr} = await _sb.storage.from('haja-attachments').upload(path, blob, {contentType: blob.type || (isVideo?'video/mp4':'image/jpeg')});
+    const {error: upErr} = await _sb.storage.from('haja-attachments').upload(path, blob, {contentType: blob.type || (isVideo?'video/mp4':'image/jpeg'), cacheControl: '31536000'});
     if (upErr) {
       const msg = upErr.message || '';
       if (msg.toLowerCase().includes('payload') || msg.toLowerCase().includes('too large') || msg.toLowerCase().includes('size'))
